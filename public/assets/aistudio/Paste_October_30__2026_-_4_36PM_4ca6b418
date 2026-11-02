@@ -1,0 +1,1515 @@
+// ============================================================================
+// معدل DZ — النسخة الموجهة للإنتاج (Production Build)
+// ============================================================================
+
+import React, { useState, useEffect, useMemo, createContext, useContext } from 'react';
+import { 
+  Calculator, GraduationCap, Award, HelpCircle, BookOpen, AlertTriangle, 
+  CheckCircle2, Share2, Printer, Copy, RotateCcw, ChevronLeft, ChevronRight,
+  TrendingUp, Compass, Sliders, Shield, FileText, Info, Mail, Sparkles, ExternalLink
+} from 'lucide-react';
+
+// ----------------------------------------------------------------------------
+// إعدادات التهيئة للإنتاج (Environment & Production Config)
+// ----------------------------------------------------------------------------
+export const APP_CONFIG = {
+  appName: "معدل DZ",
+  tagline: "احسب معدلك، اعرف فرصتك، واستعد للنجاح",
+  canonicalDomain: "https://moadel-dz.com", // يُستبدل بالنطاق الحقيقي عند النشر
+  googleSearchConsoleVerification: "", // ضع رمز التحقق الحقيقي هنا: e.g. "google-site-verification=xxxx"
+  googleAnalyticsId: "", // معرّف القياس الحقيقي G-XXXXXXXXXX
+  adsensePublisherId: "", // معرّف الناشر الحقيقي: ca-pub-xxxxxxxxxxxxxxxx
+  academicYear: "2026/2027",
+  contactEmail: "contact@moadel-dz.com"
+};
+
+// ----------------------------------------------------------------------------
+// أنواع البيانات ومحرك الحسابات الحتمي (Deterministic Calculations Engine)
+// ----------------------------------------------------------------------------
+export interface Subject {
+  id: string;
+  name: string;
+  coef: number;
+  hasAssessment: boolean;
+  hasTest2: boolean;
+  assessment?: number;
+  test1?: number;
+  test2?: number;
+  exam?: number;
+  rattrapage?: number;
+}
+
+export interface UniversityModule {
+  id: string;
+  name: string;
+  coef: number;
+  credits: number;
+  td?: number;
+  exam?: number;
+  rattrapage?: number;
+}
+
+export interface ValidationRule {
+  id: string;
+  cycle: 'primary' | 'middle' | 'secondary' | 'university';
+  level: string;
+  formulaDescription: string;
+  status: 'verified' | 'provisional' | 'review_needed';
+  source: string;
+  lastUpdated: string;
+}
+
+// سجل القواعد المعتمدة مع توثيق المصدر
+export const OFFICIAL_RULES_REGISTRY: Record<string, ValidationRule> = {
+  middle_standard: {
+    id: "middle_standard",
+    cycle: "middle",
+    level: "جميع سنوات الطور المتوسط (1، 2، 3، 4 متوسط)",
+    formulaDescription: "معدل المادة = (التقويم المستمر + الفرض + الاختبار × 2) ÷ 4",
+    status: "verified",
+    source: "المنشور الوزاري المنظم لتقويم المتعلمين في مرحلة التعليم المتوسط",
+    lastUpdated: "2026-10"
+  },
+  secondary_standard: {
+    id: "secondary_standard",
+    cycle: "secondary",
+    level: "الطور الثانوي (فروض واختبارات حسب الشعبة)",
+    formulaDescription: "معدل المادة = (التقويم المستمر + الفرض المحروس + الاختبار × 2) ÷ 4",
+    status: "verified",
+    source: "دليل بناء معدلات التعليم الثانوي العام والتكنولوجي",
+    lastUpdated: "2026-10"
+  },
+  rattrapage_rule: {
+    id: "rattrapage_rule",
+    cycle: "middle",
+    level: "امتحانات الاستدراك (المتوسط والثانوي)",
+    formulaDescription: "تُحتسب النقطة الأفضل بين العلامة الأصلية وعلامة الاستدراك: MAX(Original, Rattrapage)",
+    status: "verified",
+    source: "المناشير الوزارية المنظمة للامتحانات الاستدراكية",
+    lastUpdated: "2026-10"
+  },
+  university_lmd: {
+    id: "university_lmd",
+    cycle: "university",
+    level: "نظام LMD الجامعي",
+    formulaDescription: "معدل المقياس = (التقييم المستمر CC × 0.4) + (الامتحان النهائي × 0.6) أو حسب دفتر التكوين",
+    status: "verified",
+    source: "القرار الوزاري رقم 711 و712 المنظم للطور الأول والثاني لنظام LMD",
+    lastUpdated: "2026-10"
+  }
+};
+
+// الدوال الحسابية الخالصة
+export const CalculationService = {
+  clampMark(val: number | undefined): number | undefined {
+    if (val === undefined || isNaN(val)) return undefined;
+    if (val < 0) return 0;
+    if (val > 20) return 20;
+    return Math.round(val * 100) / 100;
+  },
+
+  calculateSubjectAverage(subj: Subject): number | undefined {
+    if (subj.exam === undefined) return undefined;
+
+    const exam = Math.max(0, Math.min(20, subj.exam));
+    const assessment = subj.hasAssessment ? Math.max(0, Math.min(20, subj.assessment ?? 10)) : 0;
+    const test1 = Math.max(0, Math.min(20, subj.test1 ?? 10));
+
+    if (subj.hasAssessment) {
+      if (subj.hasTest2 && subj.test2 !== undefined) {
+        const test2 = Math.max(0, Math.min(20, subj.test2));
+        const testsAvg = (test1 + test2) / 2;
+        return (assessment + testsAvg + exam * 2) / 4;
+      }
+      return (assessment + test1 + exam * 2) / 4;
+    } else {
+      // للمواد بدون تقويم مستمر
+      return (test1 + exam * 2) / 3;
+    }
+  },
+
+  calculateTotalTrimestre(subjects: Subject[]): {
+    average: number;
+    totalWeightedPoints: number;
+    totalCoef: number;
+    completedCount: number;
+    hasEmptyMarks: boolean;
+  } {
+    let totalPoints = 0;
+    let totalCoef = 0;
+    let completedCount = 0;
+    let hasEmptyMarks = false;
+
+    for (const sub of subjects) {
+      const avg = this.calculateSubjectAverage(sub);
+      if (avg !== undefined) {
+        totalPoints += avg * sub.coef;
+        totalCoef += sub.coef;
+        completedCount++;
+      } else {
+        hasEmptyMarks = true;
+      }
+    }
+
+    const average = totalCoef > 0 ? totalPoints / totalCoef : 0;
+    return {
+      average: Math.round(average * 100) / 100,
+      totalWeightedPoints: Math.round(totalPoints * 100) / 100,
+      totalCoef,
+      completedCount,
+      hasEmptyMarks
+    };
+  },
+
+  calculateRequiredExamMark(params: {
+    targetAverage: number;
+    currentAverageExcludingSubject: number;
+    sumCoefsOther: number;
+    targetSubjectCoef: number;
+    assessmentMark: number;
+    testMark: number;
+  }): { requiredExam: number; isPossible: boolean; message: string } {
+    const { targetAverage, currentAverageExcludingSubject, sumCoefsOther, targetSubjectCoef, assessmentMark, testMark } = params;
+    const totalCoef = sumCoefsOther + targetSubjectCoef;
+    const requiredTotalPoints = targetAverage * totalCoef;
+    const currentPointsFromOthers = currentAverageExcludingSubject * sumCoefsOther;
+    const neededSubjectPoints = requiredTotalPoints - currentPointsFromOthers;
+    const neededSubjectAverage = neededSubjectPoints / targetSubjectCoef;
+
+    // معدل المادة = (التقويم + الفرض + الاختبار × 2) ÷ 4
+    // إذن: الاختبار × 2 = (معدل المادة × 4) - التقويم - الفرض
+    const requiredExam = ((neededSubjectAverage * 4) - assessmentMark - testMark) / 2;
+    const roundedExam = Math.round(requiredExam * 100) / 100;
+
+    if (roundedExam <= 0) {
+      return {
+        requiredExam: 0,
+        isPossible: true,
+        message: "أنت لا تحتاج إلى أي علامة إضافية في الاختبار لتحقيق هذا الهدف؛ رصيدك الحالي كافٍ."
+      };
+    }
+    if (roundedExam > 20) {
+      return {
+        requiredExam: roundedExam,
+        isPossible: false,
+        message: `الهدف غير ممكن نظرياً؛ يتطلب علامة ${roundedExam}/20 في الاختبار وهي تتجاوز الحد الأقصى 20.`
+      };
+    }
+    return {
+      requiredExam: roundedExam,
+      isPossible: true,
+      message: `تحتاج إلى علامة لا تقل عن ${roundedExam}/20 في الاختبار لتحقيق المعدل المطلوب.`
+    };
+  }
+};
+
+// ----------------------------------------------------------------------------
+// بيانات المواد الرسمية (Curriculum Defaults)
+// ----------------------------------------------------------------------------
+export const DEFAULT_MIDDLE_2AM_SUBJECTS: Subject[] = [
+  { id: 'ar', name: 'اللغة العربية', coef: 3, hasAssessment: true, hasTest2: false, assessment: 14, test1: 13, exam: 13 },
+  { id: 'math', name: 'الرياضيات', coef: 3, hasAssessment: true, hasTest2: false, assessment: 12, test1: 11, exam: 10 },
+  { id: 'fr', name: 'اللغة الفرنسية', coef: 2, hasAssessment: true, hasTest2: false, assessment: 13, test1: 12, exam: 12 },
+  { id: 'en', name: 'اللغة الإنجليزية', coef: 1, hasAssessment: true, hasTest2: false, assessment: 14, test1: 13, exam: 14 },
+  { id: 'sci', name: 'علوم الطبيعة والحياة', coef: 2, hasAssessment: true, hasTest2: false, assessment: 13, test1: 12, exam: 11 },
+  { id: 'phy', name: 'العلوم الفيزيائية والتكنولوجيا', coef: 2, hasAssessment: true, hasTest2: false, assessment: 12, test1: 11, exam: 12 },
+  { id: 'his_geo', name: 'التاريخ والجغرافيا', coef: 2, hasAssessment: true, hasTest2: false, assessment: 15, test1: 14, exam: 13 },
+  { id: 'isl', name: 'التربية الإسلامية', coef: 1, hasAssessment: true, hasTest2: false, assessment: 16, test1: 15, exam: 16 },
+  { id: 'civ', name: 'التربية المدنية', coef: 1, hasAssessment: true, hasTest2: false, assessment: 15, test1: 14, exam: 15 },
+  { id: 'inf', name: 'الإعلام الآلي', coef: 1, hasAssessment: true, hasTest2: false, assessment: 16, test1: 15, exam: 16 },
+  { id: 'art', name: 'التربية الفنية أو التشكيلية', coef: 1, hasAssessment: true, hasTest2: false, assessment: 17, test1: 16, exam: 17 },
+  { id: 'spo', name: 'التربية البدنية والرياضية', coef: 1, hasAssessment: true, hasTest2: false, assessment: 18, test1: 18, exam: 18 }
+];
+
+export const DEFAULT_UNIVERSITY_MODULES: UniversityModule[] = [
+  { id: 'm1', name: 'تحليل رياضي (Analyse)', coef: 3, credits: 6, td: 11, exam: 8 },
+  { id: 'm2', name: 'جبر (Algèbre)', coef: 3, credits: 6, td: 12, exam: 9 },
+  { id: 'm3', name: 'خوارزميات وهياكل بيانات (Algo)', coef: 4, credits: 6, td: 13, exam: 10 },
+  { id: 'm4', name: 'بنية الآلة (Structure Machine)', coef: 2, credits: 4, td: 10, exam: 8 },
+  { id: 'm5', name: 'لغة إنجليزية تقنية', coef: 1, credits: 2, td: 14, exam: 14 },
+  { id: 'm6', name: 'تاريخ العلوم / منهجية', coef: 1, credits: 2, td: 13, exam: 12 }
+];
+
+// ----------------------------------------------------------------------------
+// مقالات دليل المعدلات الأصلي (SEO Content Database)
+// ----------------------------------------------------------------------------
+export interface GuideArticle {
+  slug: string;
+  title: string;
+  metaDescription: string;
+  category: string;
+  lastUpdated: string;
+  readTime: string;
+  source: string;
+  contentHtml: string;
+  relatedCalculatorRoute: string;
+}
+
+export const ARTICLES_DB: GuideArticle[] = [
+  {
+    slug: 'calcul-moyenne-trimestrielle-algerie',
+    title: 'كيف يُحسب المعدل الفصلي في الطورين المتوسط والثانوي في الجزائر؟',
+    metaDescription: 'شرح طريقة حساب معدل المادة والمعدل الفصلي العام في الجزائر وفق النظام الوزاري بالمعاملات ومعدل المراقبة المستمرة.',
+    category: 'التعليم المدرسي',
+    lastUpdated: '2026-10-15',
+    readTime: '4 دقائق',
+    source: 'المناشير البيداغوجية الرسمية الصادرة عن وزارة التربية الوطنية',
+    relatedCalculatorRoute: '/semestre',
+    contentHtml: `
+      <p>يخضع حساب المعدل الفصلي في الطورين المتوسط والثانوي في الجزائر لمعادلة رسمية موحدة تعتمد على ترجيح الاختبار الفصلي بنسبة 50% مقابل 50% لأعمال الفصل (المراقبة المستمرة والفرض).</p>
+      
+      <h3 class="text-lg font-bold text-slate-800 mt-4 mb-2">1. صيغة حساب معدل المادة الواحدة</h3>
+      <div class="bg-blue-50 border-r-4 border-blue-600 p-4 rounded my-3 font-mono text-sm">
+        معدل المادة = (علامة التقويم المستمر + علامة الفرض + [علامة الاختبار × 2]) ÷ 4
+      </div>
+      <p>في حال وجود فرضين في مادة أساسية (مثل الرياضيات في بعض الشعب)، يُحسب معدل الفروض أولاً كمتوسط حسابي: (الفرض 1 + الفرض 2) ÷ 2، ثم تُطبق المعادلة الأساسية.</p>
+
+      <h3 class="text-lg font-bold text-slate-800 mt-4 mb-2">2. حساب المجموع الموزون والمعدل العام</h3>
+      <p>بعد حساب معدل كل مادة من 20، يُضرب معدل كل مادة في معاملها الرسمي المعتمد للمستوى والشعبة. يُجمع حاصل ضرب كل المواد ثم يُقسم على المجموع الإجمالي للمعاملات:</p>
+      <div class="bg-slate-100 p-3 rounded font-mono text-xs my-2">
+        المعدل الفصلي العام = ∑ (معدل المادة × المعامل) ÷ ∑ المعاملات
+      </div>
+    `
+  },
+  {
+    slug: 'guide-examen-rattrapage-algerie',
+    title: 'دليل الامتحان الاستدراكي: كيف يعمل وما هي فرص النجاح؟',
+    metaDescription: 'دليل شامل لآلية احتساب علامة الاستدراك في التعليم المتوسط والثانوي بالجزائر وشروط الانتقال إلى القسم الأعلى.',
+    category: 'الاستدراك والنجاح',
+    lastUpdated: '2026-10-20',
+    readTime: '5 دقائق',
+    source: 'القرارات المنظمة للامتحانات الاستدراكية في المؤسسات التربوية',
+    relatedCalculatorRoute: '/rattrapage',
+    contentHtml: `
+      <p>يُمثل الامتحان الاستدراكي فرصة ثانية حاسمة للتلاميذ الذين لم يُحققوا معدل الانتقال السنوي (9.00 إلى 9.99 في الطور المتوسط أو الثانوي حسب التنظيم الساري)، بهدف تمكينهم من رفع معدلهم والارتقاء إلى المستوى الأعلى.</p>
+
+      <h3 class="text-lg font-bold text-slate-800 mt-4 mb-2">قاعدة احتساب نقطة الاستدراك</h3>
+      <p>القاعدة الأساسية المطبقة رسميًا تنص على أخذ <strong>العلامة الأفضل</strong> لصالح التلميذ:</p>
+      <div class="bg-emerald-50 border-r-4 border-emerald-600 p-4 rounded my-3 text-sm">
+        العلامة المعتمدة بعد الاستدراك = القيمة القصوى بين (العلامة السنوية السابقة للمادة، علامة الامتحان الاستدراكي).
+      </div>
+      <p>هذا يعني أن إجراء الاستدراك لا يمكن أن يُنقص معدلك السنوي؛ فإذا كانت نقطة الاستدراك أقل من علامتك الأصلية، يُحتفظ بالعلامة الأصلية دون أي خصم.</p>
+    `
+  },
+  {
+    slug: 'calcul-moyenne-universitaire-lmd',
+    title: 'حاسبة ودليل معدل السداسي ونظام الأرصدة في الجامعة الجزائرية (LMD)',
+    metaDescription: 'شرح حساب معدل السداسي في النظام الجامعي LMD، المعاملات، الأرصدة (Crédits)، وقواعد التعويض السداسي والسنوي.',
+    category: 'التعليم الجامعي',
+    lastUpdated: '2026-10-18',
+    readTime: '6 دقائق',
+    source: 'القرار الوزاري رقم 712 المنظم للتقييم والتدرج في نظام LMD',
+    relatedCalculatorRoute: '/university',
+    contentHtml: `
+      <p>يرتكز نظام التعليم العالي في الجزائر (LMD) على الوحدات التعليمية (Unités d'Enseignement) ومبدأ اكتساب الأرصدة القابلة للتحويل والتراكم (30 رصيداً لكل سداسي، و60 رصيداً لكل سنة جامعية).</p>
+
+      <h3 class="text-lg font-bold text-slate-800 mt-4 mb-2">طريقة حساب معدل المقياس</h3>
+      <p>يُحسب معدل المقياس بالجمع بين التقييم المستمر (TD/TP) بنسبة 40% وامتحان نهاية السداسي بنسبة 60% (أو 50%/50% بحسب خصوصية دفتر الشروط):</p>
+      <div class="bg-blue-50 border-r-4 border-blue-600 p-4 rounded my-3 font-mono text-sm">
+        معدل المقياس = (التقييم المستمر × 0.4) + (امتحان نهاية السداسي × 0.6)
+      </div>
+
+      <h3 class="text-lg font-bold text-slate-800 mt-4 mb-2">قواعد التعويض والنجاح</h3>
+      <p>يتحقق النجاح في السداسي بإحدى حالتين:</p>
+      <ul class="list-disc list-inside space-y-1 text-sm text-slate-700">
+        <li><strong>النجاح المباشر:</strong> الحصول على معدل سداسي عام يساوي أو يفوق 10/20، ويكتسب الطالب بموجبه جميع أرصدة السداسي (30 رصيداً) بالتعويض التلقائي حتى للمقاييس التي تقل عن 10.</li>
+        <li><strong>التعويض السنوي:</strong> إذا كان معدل السداسي الأول أقل من 10، لكن المعدل السنوي (متوسط السداسيين 1 و2) يساوي أو يتجاوز 10/20.</li>
+      </ul>
+    `
+  }
+];
+
+// ----------------------------------------------------------------------------
+// سياق التوجيه الداخلي وتحديث وسوم SEO ديناميكياً
+// ----------------------------------------------------------------------------
+interface NavigationContextType {
+  currentPath: string;
+  navigate: (path: string) => void;
+}
+const NavigationContext = createContext<NavigationContextType>({
+  currentPath: '/',
+  navigate: () => {}
+});
+
+// مكون إدارة الوسوم والتوجيه في المتصفح
+export const HeadManager: React.FC<{ path: string }> = ({ path }) => {
+  useEffect(() => {
+    let title = `${APP_CONFIG.appName} | حاسبة المعدلات والاستدراك في الجزائر 2026/2027`;
+    let desc = "احسب معدلك الفصلي والسنوي ومعدل الاستدراك في الجزائر بسهولة. أدخل علاماتك ومعاملات المواد واحصل على نتيجة واضحة وفورية.";
+
+    if (path === '/rattrapage') {
+      title = `حاسبة معدل الاستدراك في الجزائر 2026/2027 | ${APP_CONFIG.appName}`;
+      desc = "احسب معدل الاستدراك لجميع أطوار التعليم في الجزائر واعرف العلامة المطلوبة للنجاح وفق القواعد المعتمدة.";
+    } else if (path === '/semestre') {
+      title = `حاسبة المعدل الفصلي بالمعاملات | ${APP_CONFIG.appName}`;
+      desc = "حاسبة دقيقة لمعدل الفصل الدراسي الأول والثاني والثالث للتعليم الابتدائي والمتوسط والثانوي في الجزائر.";
+    } else if (path === '/target-grade') {
+      title = `ما العلامة التي أحتاجها للنجاح؟ | الحاسبة المعكوسة | ${APP_CONFIG.appName}`;
+      desc = "أداة ذكية تحسب لك العلامة الواجب تحصيلها في الاختبار أو الاستدراك لتحقيق معدل النجاح المرغوب.";
+    } else if (path === '/university') {
+      title = `حاسبة المعدل الجامعي ونظام الأرصدة LMD | ${APP_CONFIG.appName}`;
+      desc = "احسب معدلك السداسي والسنوي في الجامعة الجزائرية بنظام LMD مع احتساب المقاييس، المعاملات، والأرصدة.";
+    } else if (path.startsWith('/guide')) {
+      const slug = path.split('/')[2];
+      const article = ARTICLES_DB.find(a => a.slug === slug);
+      if (article) {
+        title = `${article.title} | ${APP_CONFIG.appName}`;
+        desc = article.metaDescription;
+      } else {
+        title = `دليل حساب المعدلات في الجزائر | مقالات وشروحات | ${APP_CONFIG.appName}`;
+        desc = "شروحات مفصلة وأدلة تعليمية موثقة حول حساب المعدلات، المعاملات، وقواعد الامتحانات الاستدراكية.";
+      }
+    } else if (path === '/privacy') {
+      title = `سياسة الخصوصية | ${APP_CONFIG.appName}`;
+      desc = "سياسة الخصوصية وحماية بيانات المستخدمين في موقع معدل DZ.";
+    } else if (path === '/terms') {
+      title = `شروط الاستخدام | ${APP_CONFIG.appName}`;
+      desc = "شروط وأحكام استخدام منصة وحاسبات معدل DZ التعليمية.";
+    } else if (path === '/about') {
+      title = `من نحن | ${APP_CONFIG.appName}`;
+      desc = "تعرف على مشروع معدل DZ وفريق العمل القائم على تطوير الحاسبات التعليمية الجزائرية.";
+    } else if (path === '/contact') {
+      title = `اتصل بنا | ${APP_CONFIG.appName}`;
+      desc = "تواصل مع فريق الدعم والتطوير لمنصة معدل DZ لتقديم الملاحظات والاقتراحات.";
+    } else if (path === '/disclaimer') {
+      title = `إخلاء المسؤولية المنهجي | ${APP_CONFIG.appName}`;
+      desc = "بيان توضيحي حول طبيعة الحسابات التعليمية واستقلاليتها عن الهيئات الرسمية.";
+    }
+
+    document.title = title;
+
+    // تحديث الوسوم التعريفية
+    const setMeta = (name: string, content: string) => {
+      let meta = document.querySelector(`meta[name="${name}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', name);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+
+    setMeta('description', desc);
+    setMeta('robots', 'index, follow');
+
+    // Canonical Tag
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', `${APP_CONFIG.canonicalDomain}${path === '/' ? '' : path}`);
+
+    // تمرير رمز تحقق Google Search Console إذا توفر
+    if (APP_CONFIG.googleSearchConsoleVerification) {
+      setMeta('google-site-verification', APP_CONFIG.googleSearchConsoleVerification);
+    }
+  }, [path]);
+
+  return null;
+};
+
+// ----------------------------------------------------------------------------
+// مساحات إعلانية مطابقة لمعايير AdSense (غير مضللة وقابلة للطي)
+// ----------------------------------------------------------------------------
+export const AdSlot: React.FC<{
+  position: 'header' | 'content' | 'footer';
+  className?: string;
+}> = ({ position, className = "" }) => {
+  // إذا لم يتوفر معرّف الناشر الحقيقي، لا تترك مساحات بيضاء فارغة مشوهة للتصميم
+  if (!APP_CONFIG.adsensePublisherId) {
+    return null;
+  }
+
+  return (
+    <div className={`my-4 flex flex-col items-center justify-center p-2 bg-slate-50 border border-dashed border-slate-200 rounded-lg text-xs text-slate-400 select-none ${className}`}>
+      <span className="text-[10px] tracking-wider uppercase mb-1">مساحة إعلانية</span>
+      <div className="w-full text-center py-4 bg-white/60 rounded">
+        {/* سيتم حقن كود adsbygoogle تلقائياً عبر السكريبت الخارجي بعد تفعيل الحساب */}
+        <ins className="adsbygoogle"
+             style={{ display: 'block' }}
+             data-ad-client={APP_CONFIG.adsensePublisherId}
+             data-ad-slot={position === 'header' ? '1234567890' : '9876543210'}
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+      </div>
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// الترويسة الرئيسية وشريط التنقل العام
+// ----------------------------------------------------------------------------
+export const Header: React.FC = () => {
+  const { currentPath, navigate } = useContext(NavigationContext);
+
+  const navLinks = [
+    { label: 'الرئيسية', path: '/' },
+    { label: 'حاسبة الاستدراك', path: '/rattrapage' },
+    { label: 'المعدل الفصلي', path: '/semestre' },
+    { label: 'العلامة المطلوبة', path: '/target-grade' },
+    { label: 'المعدل الجامعي', path: '/university' },
+    { label: 'دليل المعدلات', path: '/guide' },
+  ];
+
+  return (
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <button 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-2.5 text-right focus:outline-none"
+        >
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-200">
+            <Calculator className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-lg font-black text-slate-800 tracking-tight block">معدل DZ</span>
+            <span className="text-[10px] text-emerald-600 font-semibold block -mt-1">الحاسبة الذكية الجزائرية</span>
+          </div>
+        </button>
+
+        <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-slate-600">
+          {navLinks.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`px-3 py-2 rounded-lg transition-colors ${
+                currentPath === item.path 
+                  ? 'bg-emerald-50 text-emerald-700 font-bold' 
+                  : 'hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/rattrapage')}
+            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>حاسبة الاستدراك</span>
+          </button>
+        </div>
+      </div>
+      
+      {/* شريط الملاحة للشاشات الصغيرة */}
+      <div className="md:hidden flex overflow-x-auto py-2 px-3 border-t border-slate-100 gap-2 scrollbar-none text-xs">
+        {navLinks.map((item) => (
+          <button
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            className={`whitespace-nowrap px-3 py-1.5 rounded-full ${
+              currentPath === item.path 
+                ? 'bg-emerald-600 text-white font-bold' 
+                : 'bg-slate-100 text-slate-700'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </header>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// التذييل العام وروابط السياسات (ضرورية لاعتماد AdSense)
+// ----------------------------------------------------------------------------
+export const Footer: React.FC = () => {
+  const { navigate } = useContext(NavigationContext);
+
+  return (
+    <footer className="bg-slate-900 text-slate-300 mt-16 border-t border-slate-800">
+      <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-right">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Calculator className="w-5 h-5 text-emerald-400" />
+              <span className="text-white font-bold text-base">معدل DZ</span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              منصة تعليمية إلكترونية مستقلة مخصصة لحساب المعدلات المدرسية والجامعية ومعدلات الاستدراك في الجزائر وفق المناهج الرسمية المتاحة.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold text-sm mb-3">الحاسبات السريعة</h4>
+            <ul className="space-y-2 text-xs">
+              <li><button onClick={() => navigate('/rattrapage')} className="hover:text-emerald-400">حاسبة الاستدراك 2026/2027</button></li>
+              <li><button onClick={() => navigate('/semestre')} className="hover:text-emerald-400">حساب المعدل الفصلي</button></li>
+              <li><button onClick={() => navigate('/target-grade')} className="hover:text-emerald-400">حاسبة العلامة المطلوبة للنجاح</button></li>
+              <li><button onClick={() => navigate('/university')} className="hover:text-emerald-400">حاسبة المعدل الجامعي LMD</button></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold text-sm mb-3">دليل وشروحات</h4>
+            <ul className="space-y-2 text-xs">
+              {ARTICLES_DB.map((art) => (
+                <li key={art.slug}>
+                  <button onClick={() => navigate(`/guide/${art.slug}`)} className="hover:text-emerald-400 line-clamp-1">
+                    {art.title}
+                  </button>
+                </li>
+              ))}
+              <li><button onClick={() => navigate('/guide')} className="text-emerald-400 underline font-medium">عرض جميع المقالات</button></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold text-sm mb-3">معلومات وسياسات</h4>
+            <ul className="space-y-2 text-xs">
+              <li><button onClick={() => navigate('/about')} className="hover:text-emerald-400">من نحن</button></li>
+              <li><button onClick={() => navigate('/contact')} className="hover:text-emerald-400">اتصل بنا</button></li>
+              <li><button onClick={() => navigate('/privacy')} className="hover:text-emerald-400">سياسة الخصوصية</button></li>
+              <li><button onClick={() => navigate('/terms')} className="hover:text-emerald-400">شروط الاستخدام</button></li>
+              <li><button onClick={() => navigate('/disclaimer')} className="hover:text-emerald-400">إخلاء المسؤولية المنهجي</button></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="pt-6 border-t border-slate-800 text-center text-[11px] text-slate-500 flex flex-col md:flex-row items-center justify-between gap-3">
+          <p>© {new Date().getFullYear()} معدل DZ — جميع الحقوق محفوظة. منصة تعليمية مستقلة غير رسمية.</p>
+          <div className="flex items-center gap-4">
+            <span className="text-emerald-400 flex items-center gap-1">
+              <Shield className="w-3.5 h-3.5" /> قواعد مدققة حسابياً
+            </span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// الصفحة الأولى: الرئيسية (Home View)
+// ----------------------------------------------------------------------------
+export const HomePage: React.FC = () => {
+  const { navigate } = useContext(NavigationContext);
+
+  return (
+    <div className="space-y-10">
+      {/* قسم الترحيب الرئيسي Hero */}
+      <section className="text-center py-8 md:py-12 px-4 rounded-3xl bg-gradient-to-b from-emerald-50/70 to-white border border-emerald-100">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-4">
+          <GraduationCap className="w-3.5 h-3.5" /> الموسم الدراسي 2026/2027
+        </span>
+        <h1 className="text-2xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight">
+          حاسبة المعدلات والاستدراك في الجزائر
+        </h1>
+        <p className="text-slate-600 max-w-2xl mx-auto text-sm md:text-base leading-relaxed mb-6">
+          احسب معدلك الفصلي والسنوي ومعدل الاستدراك بدقة متناهية وفق المناهج الرسمية لجميع الأطوار: الابتدائي، المتوسط، الثانوي، والجامعي.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={() => navigate('/rattrapage')}
+            className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-200 transition-all flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>ابدأ بحساب الاستدراك الآن</span>
+          </button>
+          <button
+            onClick={() => navigate('/semestre')}
+            className="px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-sm transition-all"
+          >
+            حساب المعدل الفصلي
+          </button>
+        </div>
+      </section>
+
+      <AdSlot position="header" />
+
+      {/* بطاقات الأدوات الرئيسية */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2">
+            <Compass className="w-5 h-5 text-emerald-600" />
+            الأدوات والحاسبات المتاحة
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* بطاقة الاستدراك المميزة */}
+          <div 
+            onClick={() => navigate('/rattrapage')}
+            className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white cursor-pointer shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 relative overflow-hidden"
+          >
+            <div className="relative z-10">
+              <span className="px-2.5 py-0.5 rounded bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider mb-2 inline-block">الأكثر طلباً</span>
+              <h3 className="text-lg font-bold mb-1">حاسبة معدل الاستدراك</h3>
+              <p className="text-xs text-emerald-50 leading-relaxed mb-4">
+                تحديد المواد المعنية، محاكاة علامات الاستدراك، وحساب أثر النتيجة فورياً على المعدل السنوي للنجاح.
+              </p>
+              <span className="text-xs font-bold underline flex items-center gap-1">افتح الحاسبة الآن ←</span>
+            </div>
+          </div>
+
+          {/* المعدل الفصلي */}
+          <div 
+            onClick={() => navigate('/semestre')}
+            className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 cursor-pointer shadow-sm hover:shadow-md transition-all"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+              <Calculator className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">حساب المعدل الفصلي</h3>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              إدخال علامات التقويم والفروض والاختبارات لجميع المواد وحساب المعدل العام بالمعاملات المعتمدة.
+            </p>
+            <span className="text-xs font-bold text-blue-600">حساب الفصل الأول، الثاني أو الثالث ←</span>
+          </div>
+
+          {/* الحاسبة المعكوسة */}
+          <div 
+            onClick={() => navigate('/target-grade')}
+            className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 cursor-pointer shadow-sm hover:shadow-md transition-all"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">ما العلامة التي أحتاجها للنجاح؟</h3>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              حساب عكسي دقيق يوضح النقطة التي يجب الحصول عليها في الاختبار لتحقيق هدف محدد، مع تنبيه بالإمكانية.
+            </p>
+            <span className="text-xs font-bold text-amber-600">اكتشف العلامة المطلوبة ←</span>
+          </div>
+
+          {/* المعدل الجامعي */}
+          <div 
+            onClick={() => navigate('/university')}
+            className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 cursor-pointer shadow-sm hover:shadow-md transition-all"
+          >
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
+              <Award className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">حاسبة المعدل الجامعي LMD</h3>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              حساب معدل المقاييس، معدل السداسي، ورصيد الوحدات التعليمية مع دعم شروط التعويض السداسي.
+            </p>
+            <span className="text-xs font-bold text-indigo-600">حساب معدل السداسي LMD ←</span>
+          </div>
+
+          {/* دليل المعدلات */}
+          <div 
+            onClick={() => navigate('/guide')}
+            className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 cursor-pointer shadow-sm hover:shadow-md transition-all md:col-span-2 lg:col-span-2"
+          >
+            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">دليل حساب المعدلات في الجزائر</h3>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              مقالات موثقة وشروحات مفصلة حول كيفية عمل الامتحانات الاستدراكية، حساب المعاملات، والمناشير الوزارية المعتمدة.
+            </p>
+            <span className="text-xs font-bold text-purple-600">تصفح المقالات والشروحات الموثقة ←</span>
+          </div>
+        </div>
+      </section>
+
+      {/* قسم مصداقية القواعد */}
+      <section className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+        <h2 className="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-emerald-600" />
+          الشفافية ومصادر القواعد الحسابية
+        </h2>
+        <p className="text-xs text-slate-600 leading-relaxed mb-4">
+          تعتمد حاسبات معدل DZ على صيغ رياضية صارمة مستندة إلى المناشير الوزارية المنظمة لتقويم التلاميذ في الجزائر. في الحالات التي تخضع لتعديلات استثنائية أو تباين بين التخصصات الجامعية، يُتاح للمستخدم تعديل المعاملات يدوياً بما يتوافق مع كشف نقاطه.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-600">
+          <div className="flex items-center gap-2 bg-white p-3 rounded-lg border border-slate-200">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>الطور المتوسط: (تقويم + فرض + اختبار×2) ÷ 4</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white p-3 rounded-lg border border-slate-200">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>الاستدراك: اعتماد العلامة الأفضل MAX(الأصلي، الاستدراك)</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// الصفحة الثانية: حاسبة الاستدراك (Rattrapage Flagship Tool)
+// ----------------------------------------------------------------------------
+export const RattrapagePage: React.FC = () => {
+  const [subjects, setSubjects] = useState<Subject[]>(DEFAULT_MIDDLE_2AM_SUBJECTS);
+  const [passingThreshold, setPassingThreshold] = useState<number>(10.0);
+  const [copied, setCopied] = useState(false);
+
+  // المواد التي تحتاج إلى استدراك (معدلها أقل من 10/20)
+  const rattrapageSubjects = useMemo(() => {
+    return subjects.map(s => {
+      const originalAvg = CalculationService.calculateSubjectAverage(s) ?? 0;
+      return {
+        ...s,
+        originalAvg: Math.round(originalAvg * 100) / 100,
+        needsRattrapage: originalAvg < 10
+      };
+    });
+  }, [subjects]);
+
+  // الحساب بعد الاستدراك
+  const calculationResults = useMemo(() => {
+    let originalTotalPoints = 0;
+    let newTotalPoints = 0;
+    let totalCoef = 0;
+
+    for (const sub of rattrapageSubjects) {
+      originalTotalPoints += sub.originalAvg * sub.coef;
+      // في الاستدراك: تؤخذ العلامة الأفضل بين الأصلية والاستدراكية
+      const rattrapageMark = sub.rattrapage !== undefined ? sub.rattrapage : sub.originalAvg;
+      const effectiveMark = Math.max(sub.originalAvg, rattrapageMark);
+      newTotalPoints += effectiveMark * sub.coef;
+      totalCoef += sub.coef;
+    }
+
+    const originalAvg = totalCoef > 0 ? originalTotalPoints / totalCoef : 0;
+    const newAvg = totalCoef > 0 ? newTotalPoints / totalCoef : 0;
+
+    return {
+      originalAvg: Math.round(originalAvg * 100) / 100,
+      newAvg: Math.round(newAvg * 100) / 100,
+      gain: Math.round((newAvg - originalAvg) * 100) / 100,
+      isPassed: newAvg >= passingThreshold,
+      totalCoef
+    };
+  }, [rattrapageSubjects, passingThreshold]);
+
+  const handleRattrapageChange = (id: string, val: number) => {
+    setSubjects(prev => prev.map(s => s.id === id ? { ...s, rattrapage: val } : s));
+  };
+
+  const handleCopy = () => {
+    const text = `نتيجتي في حاسبة الاستدراك عبر موقع معدل DZ:\nالمعدل السابق: ${calculationResults.originalAvg}/20\nالمعدل الجديد بعد الاستدراك: ${calculationResults.newAvg}/20\nفارق التحسين: +${calculationResults.gain} نقطة\nالنتيجة: ${calculationResults.isPassed ? 'ناجح بحول الله' : 'يحتاج إلى نقاط إضافية'}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-4">
+        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full inline-block mb-2">
+          ميزة حصرية ومحدثة لعام 2026/2027
+        </span>
+        <h1 className="text-xl md:text-3xl font-black text-slate-800 mb-2">
+          حاسبة معدل الاستدراك في الجزائر 2026/2027
+        </h1>
+        <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
+          حاكي نقاطك في الامتحان الاستدراكي فورياً واكتشف تأثير كل علامة على معدلك السنوي العام وفق قاعدة احتساب العلامة الأفضل لصالح التلميذ.
+        </p>
+      </div>
+
+      {/* لوحة النتائج العلوية */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl bg-white border border-slate-200">
+          <span className="text-xs text-slate-500 block mb-1">المعدل قبل الاستدراك</span>
+          <span className="text-2xl font-black text-slate-800">{calculationResults.originalAvg}</span>
+          <span className="text-xs text-slate-400 mr-1">/ 20</span>
+        </div>
+
+        <div className={`p-4 rounded-xl border ${calculationResults.isPassed ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+          <span className="text-xs block mb-1 font-medium">المعدل المتوقع بعد الاستدراك</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black">{calculationResults.newAvg}</span>
+            <span className="text-xs mr-1">/ 20</span>
+            {calculationResults.gain > 0 && (
+              <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">
+                +{calculationResults.gain}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-xl flex items-center justify-between border ${calculationResults.isPassed ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-800 text-white border-slate-800'}`}>
+          <div>
+            <span className="text-xs opacity-80 block">الوضعية بعد الاستدراك</span>
+            <span className="text-lg font-bold">
+              {calculationResults.isPassed ? 'مؤهل للنجاح والانتقال 🎉' : 'دون عتبة النجاح حالياً'}
+            </span>
+          </div>
+          {calculationResults.isPassed ? (
+            <CheckCircle2 className="w-8 h-8 text-white" />
+          ) : (
+            <AlertTriangle className="w-8 h-8 text-amber-400" />
+          )}
+        </div>
+      </div>
+
+      <AdSlot position="content" />
+
+      {/* قسم محاكاة مواد الاستدراك */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5 border-b border-slate-100 pb-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-800">أداة «خطتي للنجاح في الاستدراك»</h2>
+            <p className="text-xs text-slate-500">حرك شريط التمرير لمعاينة أثر النقطة على المعدل مباشرة</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleCopy}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs text-slate-700 flex items-center gap-1.5"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>{copied ? 'تم النسخ!' : 'نسخ النتيجة'}</span>
+            </button>
+            <button 
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs text-slate-700 flex items-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>طباعة</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {rattrapageSubjects.map((sub) => (
+            <div 
+              key={sub.id} 
+              className={`p-4 rounded-xl border transition-all ${
+                sub.needsRattrapage 
+                  ? 'bg-amber-50/50 border-amber-200' 
+                  : 'bg-slate-50/50 border-slate-100'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-slate-800">{sub.name}</span>
+                  <span className="text-[11px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-medium">
+                    معامل {sub.coef}
+                  </span>
+                  {sub.needsRattrapage && (
+                    <span className="text-[10px] bg-amber-200 text-amber-800 font-bold px-1.5 py-0.5 rounded">
+                      معنية بالاستدراك
+                    </span>
+                  )}
+                </div>
+                <div className="text-left text-xs">
+                  <span className="text-slate-500">العلامة السابقة: </span>
+                  <span className="font-bold text-slate-700">{sub.originalAvg}/20</span>
+                </div>
+              </div>
+
+              {/* شريط محاكاة علامة الاستدراك */}
+              <div className="flex items-center gap-4 mt-3">
+                <Sliders className="w-4 h-4 text-slate-400 shrink-0" />
+                <input
+                  type="range"
+                  min="0"
+                  max="20"
+                  step="0.25"
+                  value={sub.rattrapage ?? sub.originalAvg}
+                  onChange={(e) => handleRattrapageChange(sub.id, parseFloat(e.target.value))}
+                  className="w-full accent-emerald-600 cursor-pointer"
+                />
+                <div className="w-16 text-center shrink-0">
+                  <input
+                    type="number"
+                    min="0"
+                    max="20"
+                    step="0.25"
+                    value={sub.rattrapage ?? sub.originalAvg}
+                    onChange={(e) => handleRattrapageChange(sub.id, parseFloat(e.target.value) || 0)}
+                    className="w-16 p-1 text-center font-bold text-sm border border-slate-300 rounded bg-white text-emerald-700"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// الصفحة الثالثة: حاسبة المعدل الفصلي (Semestre Calculator)
+// ----------------------------------------------------------------------------
+export const SemestrePage: React.FC = () => {
+  const [subjects, setSubjects] = useState<Subject[]>(DEFAULT_MIDDLE_2AM_SUBJECTS);
+
+  const results = useMemo(() => {
+    return CalculationService.calculateTotalTrimestre(subjects);
+  }, [subjects]);
+
+  const updateSubjectMark = (id: string, field: 'assessment' | 'test1' | 'exam', val: number | undefined) => {
+    setSubjects(prev => prev.map(s => {
+      if (s.id === id) {
+        return { ...s, [field]: val };
+      }
+      return s;
+    }));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-xl md:text-3xl font-black text-slate-800 mb-2">
+          حاسبة المعدل الفصلي بالمعاملات (2026/2027)
+        </h1>
+        <p className="text-xs md:text-sm text-slate-600">
+          حساب دقيق لمعدل الفصل الدراسي بالاعتماد على صيغة: (التقويم + الفرض + الاختبار × 2) ÷ 4.
+        </p>
+      </div>
+
+      {/* لوحة ملخص المعدل */}
+      <div className="bg-emerald-600 text-white p-5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-md">
+        <div>
+          <span className="text-xs text-emerald-100 block mb-1">المعدل الفصلي العام</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-black">{results.average}</span>
+            <span className="text-sm opacity-80">/ 20</span>
+          </div>
+          <span className="text-xs text-emerald-100 mt-1 block">
+            مجموع النقاط الموزونة: {results.totalWeightedPoints} | مجموع المعاملات: {results.totalCoef}
+          </span>
+        </div>
+        <div className="text-left text-xs bg-emerald-700/60 p-3 rounded-xl border border-emerald-500/40">
+          <p>تقدير النتيجة: <strong>{results.average >= 10 ? 'فصل ناجح' : 'يحتاج إلى تحسين'}</strong></p>
+          <p className="mt-1 opacity-90">المواد المكتملة: {results.completedCount} من {subjects.length}</p>
+        </div>
+      </div>
+
+      {/* جدول إدخال العلامات للمواد */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
+              <tr>
+                <th className="p-3">المادة</th>
+                <th className="p-3">المعامل</th>
+                <th className="p-3">التقويم (20)</th>
+                <th className="p-3">الفرض (20)</th>
+                <th className="p-3">الاختبار (20)</th>
+                <th className="p-3">معدل المادة</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {subjects.map((sub) => {
+                const subAvg = CalculationService.calculateSubjectAverage(sub);
+                return (
+                  <tr key={sub.id} className="hover:bg-slate-50/70">
+                    <td className="p-3 font-bold text-slate-800">{sub.name}</td>
+                    <td className="p-3 text-slate-500">{sub.coef}</td>
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        step="0.25"
+                        value={sub.assessment ?? ''}
+                        onChange={(e) => updateSubjectMark(sub.id, 'assessment', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        className="w-16 p-1 border border-slate-200 rounded text-center"
+                      />
+                    </td>
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        step="0.25"
+                        value={sub.test1 ?? ''}
+                        onChange={(e) => updateSubjectMark(sub.id, 'test1', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        className="w-16 p-1 border border-slate-200 rounded text-center"
+                      />
+                    </td>
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        step="0.25"
+                        value={sub.exam ?? ''}
+                        onChange={(e) => updateSubjectMark(sub.id, 'exam', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        className="w-16 p-1 border border-slate-200 rounded text-center font-bold text-slate-800"
+                      />
+                    </td>
+                    <td className="p-3 font-bold text-emerald-700">
+                      {subAvg !== undefined ? `${Math.round(subAvg * 100) / 100}` : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// الصفحة الرابعة: ما العلامة التي أحتاجها للنجاح؟ (Target Grade Calculator)
+// ----------------------------------------------------------------------------
+export const TargetGradePage: React.FC = () => {
+  const [targetAverage, setTargetAverage] = useState<number>(10.0);
+  const [currentAverageExcluding, setCurrentAverageExcluding] = useState<number>(9.5);
+  const [otherCoefs, setOtherCoefs] = useState<number>(15);
+  const [targetSubjectCoef, setTargetSubjectCoef] = useState<number>(3);
+  const [assessmentMark, setAssessmentMark] = useState<number>(12);
+  const [testMark, setTestMark] = useState<number>(11);
+
+  const result = useMemo(() => {
+    return CalculationService.calculateRequiredExamMark({
+      targetAverage,
+      currentAverageExcludingSubject: currentAverageExcluding,
+      sumCoefsOther: otherCoefs,
+      targetSubjectCoef,
+      assessmentMark,
+      testMark
+    });
+  }, [targetAverage, currentAverageExcluding, otherCoefs, targetSubjectCoef, assessmentMark, testMark]);
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-xl md:text-3xl font-black text-slate-800 mb-2">
+          ما العلامة التي أحتاجها للنجاح؟
+        </h1>
+        <p className="text-xs md:text-sm text-slate-600">
+          حاسبة ذكية تساعدك على معرفة النقطة الواجب تحصيلها في الاختبار لتحقيق المعدل السنوي أو الفصلي المستهدف.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-4 shadow-sm">
+          <h2 className="font-bold text-sm text-slate-800 mb-3 border-b border-slate-100 pb-2">معطيات الهدف والمادة</h2>
+          
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">المعدل المراد تحقيقه (مثلاً 10.00)</label>
+            <input
+              type="number"
+              step="0.1"
+              value={targetAverage}
+              onChange={(e) => setTargetAverage(parseFloat(e.target.value) || 0)}
+              className="w-full p-2 border border-slate-200 rounded-lg text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">معامل المادة المراد الحساب لها</label>
+            <input
+              type="number"
+              value={targetSubjectCoef}
+              onChange={(e) => setTargetSubjectCoef(parseFloat(e.target.value) || 1)}
+              className="w-full p-2 border border-slate-200 rounded-lg text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">علامة التقويم المستمر</label>
+              <input
+                type="number"
+                value={assessmentMark}
+                onChange={(e) => setAssessmentMark(parseFloat(e.target.value) || 0)}
+                className="w-full p-2 border border-slate-200 rounded-lg text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">علامة الفرض</label>
+              <input
+                type="number"
+                value={testMark}
+                onChange={(e) => setTestMark(parseFloat(e.target.value) || 0)}
+                className="w-full p-2 border border-slate-200 rounded-lg text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-between p-6 rounded-2xl bg-slate-50 border border-slate-200">
+          <div>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">النتيجة الحسابية</span>
+            <div className="text-3xl font-black text-slate-900 mb-2">
+              {result.requiredExam} <span className="text-sm font-normal text-slate-500">/ 20</span>
+            </div>
+            <p className={`text-xs leading-relaxed p-3 rounded-lg border ${result.isPossible ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+              {result.message}
+            </p>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-slate-200 text-[11px] text-slate-400">
+            * تعتمد العملية على حل المعادلة الرياضية العكسية للمعدل الموزون بالمعاملات.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// الصفحة الخامسة: حاسبة المعدل الجامعي LMD
+// ----------------------------------------------------------------------------
+export const UniversityPage: React.FC = () => {
+  const [modules, setModules] = useState<UniversityModule[]>(DEFAULT_UNIVERSITY_MODULES);
+
+  const updateModuleMark = (id: string, field: 'td' | 'exam', val: number | undefined) => {
+    setModules(prev => prev.map(m => m.id === id ? { ...m, [field]: val } : m));
+  };
+
+  const results = useMemo(() => {
+    let totalPoints = 0;
+    let totalCoef = 0;
+    let acquiredCredits = 0;
+    let totalCredits = 0;
+
+    for (const mod of modules) {
+      const td = mod.td ?? 10;
+      const exam = mod.exam ?? 10;
+      const modAvg = (td * 0.4) + (exam * 0.6);
+      totalPoints += modAvg * mod.coef;
+      totalCoef += mod.coef;
+      totalCredits += mod.credits;
+
+      if (modAvg >= 10) {
+        acquiredCredits += mod.credits;
+      }
+    }
+
+    const semesterAvg = totalCoef > 0 ? totalPoints / totalCoef : 0;
+    const roundedAvg = Math.round(semesterAvg * 100) / 100;
+
+    // في حال نجاح السداسي بمعدل 10/20 فما فوق، تُكتسب جميع الأرصدة (30 رصيداً) بالتعويض
+    const finalCredits = roundedAvg >= 10 ? totalCredits : acquiredCredits;
+
+    return {
+      semesterAvg: roundedAvg,
+      totalCredits,
+      finalCredits,
+      isSemesterPassed: roundedAvg >= 10
+    };
+  }, [modules]);
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-xl md:text-3xl font-black text-slate-800 mb-2">
+          حاسبة المعدل الجامعي ونظام الأرصدة LMD
+        </h1>
+        <p className="text-xs md:text-sm text-slate-600">
+          حساب معدل المقاييس، معدل السداسي، ورصيد الوحدات وفق قاعدة التعويض المعمول بها في الجامعات الجزائرية.
+        </p>
+      </div>
+
+      <div className="bg-indigo-900 text-white p-5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <span className="text-xs text-indigo-200 block mb-1">المعدل العام للسداسي</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-black">{results.semesterAvg}</span>
+            <span className="text-sm opacity-80">/ 20</span>
+          </div>
+        </div>
+        <div className="bg-indigo-800/80 p-3 rounded-xl text-xs space-y-1">
+          <p>الأرصدة المكتسبة: <strong>{results.finalCredits} من {results.totalCredits}</strong></p>
+          <p>الوضعية: <strong>{results.isSemesterPassed ? 'سداسي مكتسب بالتعويض' : 'استدراك مطلوب للمقاييس غير المكتسبة'}</strong></p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
+              <tr>
+                <th className="p-3">المقياس</th>
+                <th className="p-3">المعامل</th>
+                <th className="p-3">الأرصدة</th>
+                <th className="p-3">التقييم المستمر (TD)</th>
+                <th className="p-3">امتحان السداسي</th>
+                <th className="p-3">معدل المقياس</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {modules.map((m) => {
+                const td = m.td ?? 0;
+                const exam = m.exam ?? 0;
+                const avg = Math.round(((td * 0.4) + (exam * 0.6)) * 100) / 100;
+                return (
+                  <tr key={m.id}>
+                    <td className="p-3 font-bold text-slate-800">{m.name}</td>
+                    <td className="p-3 text-slate-500">{m.coef}</td>
+                    <td className="p-3 text-slate-500">{m.credits}</td>
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        step="0.25"
+                        value={m.td ?? ''}
+                        onChange={(e) => updateModuleMark(m.id, 'td', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        className="w-16 p-1 border border-slate-200 rounded text-center"
+                      />
+                    </td>
+                    <td className="p-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        step="0.25"
+                        value={m.exam ?? ''}
+                        onChange={(e) => updateModuleMark(m.id, 'exam', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        className="w-16 p-1 border border-slate-200 rounded text-center"
+                      />
+                    </td>
+                    <td className={`p-3 font-bold ${avg >= 10 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {avg}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// الصفحة السادسة: دليل المعدلات وقسم المقالات الموثقة (SEO Hub)
+// ----------------------------------------------------------------------------
+export const GuideListPage: React.FC = () => {
+  const { navigate } = useContext(NavigationContext);
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-xl md:text-3xl font-black text-slate-800 mb-2">
+          دليل حساب المعدلات في الجزائر
+        </h1>
+        <p className="text-xs md:text-sm text-slate-600">
+          مقالات تعليمية وشروحات أصلية موثقة حول القواعد الرسمية المعتمدة لاحتساب المعدلات والامتحانات الاستدراكية.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {ARTICLES_DB.map((art) => (
+          <div 
+            key={art.slug} 
+            className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center gap-2 mb-2 text-[11px] text-slate-400">
+                <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium">{art.category}</span>
+                <span>•</span>
+                <span>وقت القراءة: {art.readTime}</span>
+              </div>
+              <h2 className="text-base font-bold text-slate-800 mb-2 leading-snug">{art.title}</h2>
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">{art.metaDescription}</p>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <button 
+                onClick={() => navigate(`/guide/${art.slug}`)}
+                className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+              >
+                قراءة الدليل كاملاً ←
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const ArticleViewPage: React.FC<{ slug: string }> = ({ slug }) => {
+  const { navigate } = useContext(NavigationContext);
+  const article = ARTICLES_DB.find(a => a.slug === slug);
+
+  if (!article) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-lg font-bold text-slate-800">المقال غير موجود</h2>
+        <button onClick={() => navigate('/guide')} className="mt-4 text-xs font-bold text-emerald-600 underline">
+          العودة لدليل المقالات
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <article className="max-w-3xl mx-auto space-y-6 bg-white p-6 md:p-8 rounded-3xl border border-slate-200">
+      <div className="border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+          <span>{article.category}</span>
+          <span>•</span>
+          <span>آخر تحديث: {article.lastUpdated}</span>
+        </div>
+        <h1 className="text-xl md:text-3xl font-black text-slate-900 leading-snug mb-3">
+          {article.title}
+        </h1>
+        <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600 border border-slate-200">
+          <strong>المصدر الرسمي:</strong> {article.source}
+        </div>
+      </div>
+
+      <div 
+        className="prose prose-slate max-w-none text-xs md:text-sm leading-relaxed text-slate-700"
+        dangerouslySetInnerHTML={{ __html: article.contentHtml }} 
+      />
+
+      <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <button
+          onClick={() => navigate(article.relatedCalculatorRoute)}
+          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2"
+        >
+          <Calculator className="w-4 h-4" />
+          <span>الانتقال للحاسبة المرتبطة بهذا الشرح</span>
+        </button>
+        <button
+          onClick={() => navigate('/guide')}
+          className="text-xs text-slate-500 hover:text-slate-800 font-medium"
+        >
+          ← العودة لكل المقالات
+        </button>
+      </div>
+    </article>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// الصفحات القانونية والسياسات (Legal & Compliance Views)
+// ----------------------------------------------------------------------------
+export const PrivacyPolicyPage: React.FC = () => (
+  <div className="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl border border-slate-200 space-y-4 text-xs md:text-sm text-slate-700 leading-relaxed">
+    <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">سياسة الخصوصية</h1>
+    <p>تاريخ آخر تحديث: 2026-10-29</p>
+    <p>نحن في موقع «معدل DZ» نولي أهمية بالغة لخصوصية زوارنا. توضح هذه الوثيقة نوع المعلومات التي يتم التعامل معها عند استخدامك للتطبيق:</p>
+    
+    <h3 className="font-bold text-slate-900 mt-4">1. البيانات المدخلة والعلامات</h3>
+    <p>تتم كافة العمليات الحسابية محلياً على متصفح جهازك (Client-side). نحن لا نقوم بتسجيل أو تخزين أو إرسال أسمائك أو علاماتك الدراسية إلى أي خوادم خارجية.</p>
+
+    <h3 className="font-bold text-slate-900 mt-4">2. التخزين المحلي (LocalStorage)</h3>
+    <p>قد يستخدم التطبيق ميزة التخزين المحلي في متصفحك لحفظ درجاتك مؤقتاً لتسهيل العودة إليها، ويمكنك مسح هذه البيانات في أي وقت بمسح بيانات التصفح.</p>
+
+    <h3 className="font-bold text-slate-900 mt-4">3. الإعلانات وخدمات الطرف الثالث (Google AdSense)</h3>
+    <p>قد يستعين الموقع بشركاء إعلانيين مثل Google لعرض الإعلانات عند زيارة موقعنا. تستخدم هذه الشركات ملفات تعريف الارتباط (Cookies) لخدمة الإعلانات استناداً إلى زياراتك السابقة لهذا الموقع أو لمواقع أخرى على الويب.</p>
+  </div>
+);
+
+export const TermsPage: React.FC = () => (
+  <div className="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl border border-slate-200 space-y-4 text-xs md:text-sm text-slate-700 leading-relaxed">
+    <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">شروط الاستخدام</h1>
+    <p>باستخدامك لموقع «معدل DZ»، فإنك توافق على الالتزام بالشروط والأحكام الآتية:</p>
+    <ul className="list-disc list-inside space-y-2 mt-2">
+      <li>تُقدم هذه الأداة كخدمة تعليمية استرشادية لمساعدة التلاميذ والطلبة وأولياء الأمور على تقدير ومحاكاة نتائجهم الدراسية.</li>
+      <li>الحسابات والنتائج الصادرة عن الموقع لا تشكل بأي حال من الأحوال وثيقة نجاح أو كشف نقاط رسمي، والجهة الوحيدة المخولة بإصدار النتائج هي المؤسسات التعليمية التابعة لوزارة التربية الوطنية ووزارة التعليم العالي الجزائرية.</li>
+      <li>يبذل فريق العمل قصارى جهده لضمان مطابقة المعاملات والمناهج لأحدث المذكرات الوزارية، دون أدنى مسؤولية قانونية عن أي تباين محتمل ناتج عن قرارات خاصة بالمؤسسات.</li>
+    </ul>
+  </div>
+);
+
+export const DisclaimerPage: React.FC = () => (
+  <div className="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl border border-slate-200 space-y-4 text-xs md:text-sm text-slate-700 leading-relaxed">
+    <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">إخلاء المسؤولية المنهجي</h1>
+    <div className="p-4 bg-amber-50 border-r-4 border-amber-500 rounded text-amber-900 text-xs">
+      <strong>تنبيه هام:</strong> منصة «معدل DZ» هي مبادرة برمجية مستقلة وليست منصة رسمية تابعة لوزارة التربية الوطنية الجزائرية أو الديوان الوطني للامتحانات والمسابقات (ONEC).
+    </div>
+    <p>النتائج المحسوبة هي تقديرات رقمية مبنية على العمليات الحسابية المعتمدة في المناهج، وتخضع القرارات النهائية لمجالس الأقسام والمداولات الرسمية داخل المؤسسات التعليمية.</p>
+  </div>
+);
+
+export const AboutPage: React.FC = () => (
+  <div className="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl border border-slate-200 space-y-4 text-xs md:text-sm text-slate-700 leading-relaxed">
+    <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">من نحن</h1>
+    <p>«معدل DZ» هو مشروع ويب تعليمي صُمم وطُوّر لخدمة التلاميذ والطلبة في الجزائر، بهدف توفير حاسبة معدلات ذكية، واضحة وخالية من التعقيد، تلبي احتياجات الحساب الفصلي، السنوي، والاستدراكي بدقة برمجية تامة.</p>
+    <p>تم إعداد وتدقيق المحرك الحسابي بناءً على المناهج والمناشير الوزارية السارية للسنة الدراسية 2026/2027.</p>
+  </div>
+);
+
+export const ContactPage: React.FC = () => (
+  <div className="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl border border-slate-200 space-y-4 text-xs md:text-sm text-slate-700 leading-relaxed">
+    <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">اتصل بنا</h1>
+    <p>يسعدنا تلقي استفساراتكم واقتراحاتكم لتطوير التطبيق أو للإبلاغ عن أي تعديل في المعاملات الرسمية عبر البريد الإلكتروني:</p>
+    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3 font-mono text-emerald-700">
+      <Mail className="w-5 h-5 text-slate-400" />
+      <span>{APP_CONFIG.contactEmail}</span>
+    </div>
+  </div>
+);
+
+// ----------------------------------------------------------------------------
+// صفحة الخطأ 404
+// ----------------------------------------------------------------------------
+export const NotFoundPage: React.FC = () => {
+  const { navigate } = useContext(NavigationContext);
+
+  return (
+    <div className="text-center py-16 space-y-4">
+      <h1 className="text-6xl font-black text-slate-300">404</h1>
+      <h2 className="text-xl font-bold text-slate-800">الصفحة المطلوبة غير موجودة</h2>
+      <p className="text-xs text-slate-500 max-w-md mx-auto">
+        ربما تم نقل الصفحة أو كتابة الرابط بشكل خاطئ. يمكنك الرجوع إلى الصفحة الرئيسية واستخدام إحدى الحاسبات المتاحة.
+      </p>
+      <button
+        onClick={() => navigate('/')}
+        className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs"
+      >
+        العودة للصفحة الرئيسية
+      </button>
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------------------
+// المكون الرئيسي للتطبيق والتوجيه الشامل
+// ----------------------------------------------------------------------------
+export default function App() {
+  const [currentPath, setCurrentPath] = useState<string>(() => {
+    return window.location.pathname || '/';
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname || '/');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigate = (path: string) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const renderContent = () => {
+    if (currentPath === '/') return <HomePage />;
+    if (currentPath === '/rattrapage') return <RattrapagePage />;
+    if (currentPath === '/semestre') return <SemestrePage />;
+    if (currentPath === '/target-grade') return <TargetGradePage />;
+    if (currentPath === '/university') return <UniversityPage />;
+    if (currentPath === '/guide') return <GuideListPage />;
+    if (currentPath.startsWith('/guide/')) {
+      const slug = currentPath.split('/')[2];
+      return <ArticleViewPage slug={slug} />;
+    }
+    if (currentPath === '/privacy') return <PrivacyPolicyPage />;
+    if (currentPath === '/terms') return <TermsPage />;
+    if (currentPath === '/about') return <AboutPage />;
+    if (currentPath === '/contact') return <ContactPage />;
+    if (currentPath === '/disclaimer') return <DisclaimerPage />;
+    return <NotFoundPage />;
+  };
+
+  return (
+    <NavigationContext.Provider value={{ currentPath, navigate }}>
+      <HeadManager path={currentPath} />
+      <div className="min-w-[320px] min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans" dir="rtl">
+        <Header />
+        <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 md:py-8">
+          {renderContent()}
+        </main>
+        <Footer />
+      </div>
+    </NavigationContext.Provider>
+  );
+}

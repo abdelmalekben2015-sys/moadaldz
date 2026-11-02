@@ -1,0 +1,8 @@
+{
+  "name": "معدل DZ — حاسبة المعدلات والاستدراك في الجزائر",
+  "description": "الحاسبة الذكية المعتمدة لحساب المعدلات الفصلية والسنوية ومعدلات الاستدراك 2026/2027 في الجزائر للطور الابتدائي والمتوسط والثانوي والجامعي.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
