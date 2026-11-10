@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://moadel-dz.com/sitemap.xml
+Sitemap: https://moadaldz.pages.dev/sitemap.xml
