@@ -95,30 +95,30 @@ export const TargetGradeCalculator: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">المادة المستهدفة</label>
+              <label className="block text-xs font-bold text-slate-800 mb-1">المادة المستهدفة</label>
               <input
                 type="text"
                 value={targetSubjectName}
                 onChange={(e) => setTargetSubjectName(e.target.value)}
-                className="w-full p-2.5 text-xs font-bold border border-slate-200 rounded-xl"
+                className="w-full p-2.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">معامل هذه المادة</label>
+              <label className="block text-xs font-bold text-slate-800 mb-1">معامل هذه المادة</label>
               <input
                 type="number"
                 min="1"
                 max="10"
                 value={targetSubjectCoef}
                 onChange={(e) => setTargetSubjectCoef(parseFloat(e.target.value) || 1)}
-                className="w-full p-2.5 text-xs font-bold border border-slate-200 rounded-xl"
+                className="w-full p-2.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-500"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">معدل بقية المواد تقريباً</label>
+              <label className="block text-xs font-bold text-slate-800 mb-1">معدل بقية المواد تقريباً</label>
               <input
                 type="number"
                 min="0"
@@ -126,28 +126,28 @@ export const TargetGradeCalculator: React.FC = () => {
                 step="0.1"
                 value={currentAverageExcluding}
                 onChange={(e) => setCurrentAverageExcluding(parseFloat(e.target.value) || 0)}
-                className="w-full p-2.5 text-xs font-bold border border-slate-200 rounded-xl"
+                className="w-full p-2.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">مجموع معاملات بقية المواد</label>
+              <label className="block text-xs font-bold text-slate-800 mb-1">مجموع معاملات بقية المواد</label>
               <input
                 type="number"
                 min="1"
                 max="30"
                 value={sumCoefsOther}
                 onChange={(e) => setSumCoefsOther(parseFloat(e.target.value) || 1)}
-                className="w-full p-2.5 text-xs font-bold border border-slate-200 rounded-xl"
+                className="w-full p-2.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-500"
               />
             </div>
           </div>
 
           <div className="border-t border-slate-100 pt-4 space-y-3">
-            <span className="text-xs font-bold text-slate-800 block">علامات المادة المستهدفة قبل الاختبار:</span>
+            <span className="text-xs font-bold text-slate-900 block">علامات المادة المستهدفة قبل الاختبار:</span>
             
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1">علامة التقويم المستمر (20)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">علامة التقويم المستمر (20)</label>
                 <input
                   type="number"
                   min="0"
@@ -155,12 +155,12 @@ export const TargetGradeCalculator: React.FC = () => {
                   step="0.25"
                   value={assessmentMark}
                   onChange={(e) => setAssessmentMark(parseFloat(e.target.value) || 0)}
-                  className="w-full p-2 text-xs font-bold border border-slate-200 rounded-xl"
+                  className="w-full p-2 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1">علامة الفرض المحروس (20)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">علامة الفرض المحروس (20)</label>
                 <input
                   type="number"
                   min="0"
@@ -168,7 +168,7 @@ export const TargetGradeCalculator: React.FC = () => {
                   step="0.25"
                   value={testMark}
                   onChange={(e) => setTestMark(parseFloat(e.target.value) || 0)}
-                  className="w-full p-2 text-xs font-bold border border-slate-200 rounded-xl"
+                  className="w-full p-2 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-500"
                 />
               </div>
             </div>

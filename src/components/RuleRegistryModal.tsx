@@ -81,14 +81,14 @@ export const RuleRegistryModal: React.FC<RuleRegistryModalProps> = ({ isOpen, on
                   {rule.formulaDescription}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-500 pt-1">
+                <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-700 pt-1 font-medium">
                   <span className="flex items-center gap-1">
-                    <Building className="w-3.5 h-3.5 text-slate-400" />
-                    <strong>المصدر:</strong> {rule.officialSource}
+                    <Building className="w-3.5 h-3.5 text-slate-500" />
+                    <strong className="text-slate-900">المصدر:</strong> {rule.officialSource}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <strong>آخر تدقيق:</strong> {rule.lastAuditedDate}
+                    <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                    <strong className="text-slate-900">آخر تدقيق:</strong> {rule.lastAuditedDate}
                   </span>
                 </div>
 

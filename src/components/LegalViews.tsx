@@ -100,24 +100,24 @@ export const AboutPage: React.FC = () => (
 
     <h2 className="text-base font-bold text-slate-900 pt-2">قيمنا الأساسية:</h2>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
         <h3 className="font-bold text-slate-900 text-xs mb-1">1. الدقة الحسابية الصارمة</h3>
-        <p className="text-[11px] text-slate-500">لا نعتمد على التخمين، بل على صيغ برمجية حتمية خاضعة لاختبارات دورية آلية.</p>
+        <p className="text-xs text-slate-600 font-medium leading-relaxed">لا نعتمد على التخمين، بل على صيغ برمجية حتمية خاضعة لاختبارات دورية آلية.</p>
       </div>
 
-      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
         <h3 className="font-bold text-slate-900 text-xs mb-1">2. أولوية الاستدراك الذكي</h3>
-        <p className="text-[11px] text-slate-500">ابتكار أدوات تفاعلية مثل «خطتي للنجاح في الاستدراك» لتوجيه جهود التلميذ نحو المواد المؤثرة.</p>
+        <p className="text-xs text-slate-600 font-medium leading-relaxed">ابتكار أدوات تفاعلية مثل «خطتي للنجاح في الاستدراك» لتوجيه جهود التلميذ نحو المواد المؤثرة.</p>
       </div>
 
-      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
         <h3 className="font-bold text-slate-900 text-xs mb-1">3. المجانية والسهولة التامة</h3>
-        <p className="text-[11px] text-slate-500">تجربة سهلة على الهاتف والحاسوب دون اشتراط أي تسجيل حساب.</p>
+        <p className="text-xs text-slate-600 font-medium leading-relaxed">تجربة سهلة على الهاتف والحاسوب دون اشتراط أي تسجيل حساب.</p>
       </div>
 
-      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
         <h3 className="font-bold text-slate-900 text-xs mb-1">4. التوثيق والشفافية</h3>
-        <p className="text-[11px] text-slate-500">عرض مصادر القواعد والمناشير الوزارية وتاريخ تدقيقها لكل سنة دراسية.</p>
+        <p className="text-xs text-slate-600 font-medium leading-relaxed">عرض مصادر القواعد والمناشير الوزارية وتاريخ تدقيقها لكل سنة دراسية.</p>
       </div>
     </div>
   </div>
@@ -162,38 +162,38 @@ export const ContactPage: React.FC = () => {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-bold text-slate-700 mb-1">الاسم الكامل</label>
+            <label className="block font-bold text-slate-800 mb-1">الاسم الكامل</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="مثلاً: محمد الجزائري"
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+              className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:border-emerald-500"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">البريد الإلكتروني</label>
+            <label className="block font-bold text-slate-800 mb-1">البريد الإلكتروني</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+              className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:border-emerald-500"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">الرسالة أو الملاحظة البيداغوجية</label>
+            <label className="block font-bold text-slate-800 mb-1">الرسالة أو الملاحظة البيداغوجية</label>
             <textarea
               required
               rows={4}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="اكتب استفسارك أو اقترح مادة أو معامل لتحديثه..."
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+              className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:border-emerald-500"
             />
           </div>
 

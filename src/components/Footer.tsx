@@ -32,7 +32,7 @@ export const Footer: React.FC<FooterProps> = ({
               <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold">
                 <Calculator className="w-4 h-4" />
               </div>
-              <span className="text-white font-black text-lg tracking-tight">معدل DZ</span>
+              <span className="text-white font-black text-lg tracking-tight" style={{ color: '#191414' }}>معدل DZ</span>
               <span className="text-[10px] bg-slate-800 text-emerald-400 font-semibold px-2 py-0.5 rounded border border-slate-700">
                 الموسم 2026/2027
               </span>
@@ -63,7 +63,7 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* العمود 2: الحاسبات المدرسية */}
           <div>
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">الحاسبات السريعة</h4>
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3" style={{ color: '#250e0e' }}>الحاسبات السريعة</h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <button onClick={() => navigate('/rattrapage')} className="hover:text-emerald-400 flex items-center gap-1">
@@ -91,7 +91,7 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* العمود 3: مقالات ودليل المعدلات */}
           <div>
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">دليل وشروحات رسمية</h4>
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3" style={{ color: '#e31818' }}>دليل وشروحات رسمية</h4>
             <ul className="space-y-2 text-xs">
               {ARTICLES_DB.slice(0, 4).map((art) => (
                 <li key={art.slug}>
@@ -113,7 +113,7 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* العمود 4: السياسات والشروط */}
           <div>
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">السياسات والمعلومات</h4>
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3" style={{ color: '#e61414' }}>السياسات والمعلومات</h4>
             <ul className="space-y-2 text-xs">
               <li><button onClick={() => navigate('/about')} className="hover:text-emerald-400">من نحن</button></li>
               <li><button onClick={() => navigate('/contact')} className="hover:text-emerald-400">اتصل بنا</button></li>

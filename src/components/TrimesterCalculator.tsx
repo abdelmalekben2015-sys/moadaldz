@@ -326,7 +326,7 @@ export const TrimesterCalculator: React.FC<TrimesterCalculatorProps> = ({ onSave
                         max="10"
                         value={sub.coef}
                         onChange={(e) => updateSubjectField(sub.id, 'coef', parseFloat(e.target.value) || 1)}
-                        className="w-14 p-1 text-center font-bold border border-slate-200 rounded-lg bg-white"
+                        className="w-14 p-1 text-center font-bold text-slate-900 border border-slate-300 rounded-lg bg-white"
                         title="معامل المادة"
                       />
                     </td>
@@ -341,7 +341,7 @@ export const TrimesterCalculator: React.FC<TrimesterCalculatorProps> = ({ onSave
                           step="0.25"
                           value={sub.defaultAssessment ?? ''}
                           onChange={(e) => updateSubjectField(sub.id, 'defaultAssessment', e.target.value ? parseFloat(e.target.value) : undefined)}
-                          className="w-16 p-1 text-center border border-slate-200 rounded-lg bg-white"
+                          className="w-16 p-1 text-center font-bold text-slate-900 border border-slate-300 rounded-lg bg-white"
                           placeholder="—"
                         />
                       </td>
@@ -356,7 +356,7 @@ export const TrimesterCalculator: React.FC<TrimesterCalculatorProps> = ({ onSave
                         step="0.25"
                         value={sub.defaultTest1 ?? ''}
                         onChange={(e) => updateSubjectField(sub.id, 'defaultTest1', e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className="w-16 p-1 text-center border border-slate-200 rounded-lg bg-white"
+                        className="w-16 p-1 text-center font-bold text-slate-900 border border-slate-300 rounded-lg bg-white"
                         placeholder="—"
                       />
                     </td>
@@ -375,7 +375,7 @@ export const TrimesterCalculator: React.FC<TrimesterCalculatorProps> = ({ onSave
                             updateSubjectField(sub.id, 'hasTest2', val !== undefined);
                             updateSubjectField(sub.id, 'defaultTest2', val);
                           }}
-                          className="w-16 p-1 text-center border border-slate-200 rounded-lg bg-white"
+                          className="w-16 p-1 text-center font-bold text-slate-900 border border-slate-300 rounded-lg bg-white"
                           placeholder="—"
                         />
                       </td>
@@ -390,7 +390,7 @@ export const TrimesterCalculator: React.FC<TrimesterCalculatorProps> = ({ onSave
                         step="0.25"
                         value={sub.defaultExam ?? ''}
                         onChange={(e) => updateSubjectField(sub.id, 'defaultExam', e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className="w-16 p-1 text-center font-bold border border-slate-300 rounded-lg bg-white text-emerald-800"
+                        className="w-16 p-1 text-center font-black border border-slate-300 rounded-lg bg-white text-emerald-950"
                         placeholder="—"
                       />
                     </td>
@@ -398,11 +398,11 @@ export const TrimesterCalculator: React.FC<TrimesterCalculatorProps> = ({ onSave
                     {/* معدل المادة */}
                     <td className="p-3 font-bold">
                       {subAvg !== undefined ? (
-                        <span className={`px-2 py-0.5 rounded ${subAvg >= 10 ? 'text-emerald-700 bg-emerald-50' : 'text-amber-800 bg-amber-50'}`}>
+                        <span className={`px-2 py-0.5 rounded font-black ${subAvg >= 10 ? 'text-emerald-950 bg-emerald-100' : 'text-amber-950 bg-amber-100'}`}>
                           {subAvg}
                         </span>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-slate-400 font-bold">—</span>
                       )}
                     </td>
 

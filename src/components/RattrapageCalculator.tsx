@@ -439,7 +439,7 @@ export const RattrapageCalculator: React.FC<RattrapageCalculatorProps> = ({ onSa
 
                   {/* مدخل العلامة السابقة */}
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="text-slate-500">العلامة السنوية السابقة:</span>
+                    <span className="text-slate-700 font-bold">العلامة السنوية السابقة:</span>
                     <input
                       type="number"
                       min="0"
@@ -447,17 +447,17 @@ export const RattrapageCalculator: React.FC<RattrapageCalculatorProps> = ({ onSa
                       step="0.25"
                       value={sub.originalMark}
                       onChange={(e) => updateOriginalMark(sub.id, parseFloat(e.target.value) || 0)}
-                      className="w-16 p-1 text-center font-bold text-xs border border-slate-300 rounded-lg bg-white"
+                      className="w-16 p-1 text-center font-black text-xs text-slate-900 border border-slate-300 rounded-lg bg-white focus:border-emerald-500"
                       title="العلامة السنوية الأصلية من كشف النقاط"
                     />
-                    <span className="text-slate-400">/ 20</span>
+                    <span className="text-slate-500 font-bold">/ 20</span>
                   </div>
 
                 </div>
 
                 {/* شريط محاكاة علامة الاستدراك */}
                 <div className="flex items-center gap-3 pt-2">
-                  <div className="text-xs font-semibold text-slate-600 shrink-0 w-24">
+                  <div className="text-xs font-bold text-slate-800 shrink-0 w-24">
                     نقطة الاستدراك:
                   </div>
 
@@ -481,11 +481,11 @@ export const RattrapageCalculator: React.FC<RattrapageCalculatorProps> = ({ onSa
                       onChange={(e) => updateRattrapageMark(sub.id, parseFloat(e.target.value) || 0)}
                       className={`w-16 p-1.5 text-center font-black text-xs border rounded-lg ${
                         isImproved 
-                          ? 'border-emerald-500 text-emerald-800 bg-emerald-50' 
-                          : 'border-slate-300 text-slate-800 bg-white'
+                          ? 'border-emerald-600 text-emerald-950 bg-emerald-100/70 font-black' 
+                          : 'border-slate-300 text-slate-900 bg-white'
                       }`}
                     />
-                    <span className="text-xs text-slate-400">/ 20</span>
+                    <span className="text-xs text-slate-500 font-bold">/ 20</span>
                   </div>
 
                   {/* أثر التحسين */}

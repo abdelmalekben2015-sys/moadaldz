@@ -111,58 +111,58 @@ export const AdminPreviewModal: React.FC<AdminPreviewModalProps> = ({ isOpen, on
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">عنوان القاعدة أو المنشور</label>
+                  <label className="block font-bold text-slate-800 mb-1">عنوان القاعدة أو المنشور</label>
                   <input
                     type="text"
                     required
                     value={newRuleTitle}
                     onChange={(e) => setNewRuleTitle(e.target.value)}
                     placeholder="مثلاً: تعديل معامل مادة التاريخ والجغرافيا"
-                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
+                    className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">الطور / المستوى المعني</label>
+                  <label className="block font-bold text-slate-800 mb-1">الطور / المستوى المعني</label>
                   <input
                     type="text"
                     value={newRuleLevel}
                     onChange={(e) => setNewRuleLevel(e.target.value)}
                     placeholder="مثلاً: 3 ثانوي شعبة لغات أجنبية"
-                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
+                    className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">الصيغة الرياضية أو المعادلة الحسابية</label>
+                <label className="block font-bold text-slate-800 mb-1">الصيغة الرياضية أو المعادلة الحسابية</label>
                 <input
                   type="text"
                   required
                   value={newRuleFormula}
                   onChange={(e) => setNewRuleFormula(e.target.value)}
                   placeholder="مثلاً: معدل المادة = (التقويم + الفرض + الاختبار × 2) ÷ 4"
-                  className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-mono"
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-medium text-slate-900 focus:border-emerald-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">المصدر الرسمي / رقم المذكرة الوزارية</label>
+                  <label className="block font-bold text-slate-800 mb-1">المصدر الرسمي / رقم المذكرة الوزارية</label>
                   <input
                     type="text"
                     required
                     value={newRuleSource}
                     onChange={(e) => setNewRuleSource(e.target.value)}
                     placeholder="مثلاً: المنشور الوزاري رقم 128 / و.ت.و"
-                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs"
+                    className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">حالة التحقق</label>
+                  <label className="block font-bold text-slate-800 mb-1">حالة التحقق</label>
                   <select
                     value={newRuleStatus}
                     onChange={(e) => setNewRuleStatus(e.target.value as any)}
-                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-bold"
+                    className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:border-emerald-500"
                   >
                     <option value="review_needed">تحتاج إلى مراجعة (مسودة)</option>
                     <option value="verified">مؤكدة رسمياً بمستند معتمد</option>
@@ -199,7 +199,7 @@ export const AdminPreviewModal: React.FC<AdminPreviewModalProps> = ({ isOpen, on
                       {rule.level}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 font-mono block mt-1">
+                  <span className="text-[11px] text-slate-700 font-mono block mt-1 font-medium">
                     {rule.formulaDescription}
                   </span>
                 </div>

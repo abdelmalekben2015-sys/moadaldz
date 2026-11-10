@@ -39,6 +39,16 @@ body {
   color: #0f172a;
 }
 
+/* ضمان وضوح وتباين النصوص والمدخلات على جميع الأجهزة والمتصفحات والوضع الليلي */
+input, select, textarea {
+  color: #0f172a;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
 /* تدرج القسم الرئيسي Hero من Emerald-900 إلى Emerald-600 */
 .hero-emerald-gradient {
   background: linear-gradient(135deg, #064e3b 0%, #065f46 45%, #059669 100%);

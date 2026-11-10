@@ -70,12 +70,12 @@ export const SavedResultsModal: React.FC<SavedResultsModalProps> = ({
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold text-slate-800">{res.title}</span>
-                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <span className="text-xs font-bold text-slate-900">{res.title}</span>
+                    <span className="text-[10px] text-slate-500 font-medium flex items-center gap-1">
                       <Calendar className="w-3 h-3" /> {res.date}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-700 font-medium">
                     المجموع: {res.totalWeightedPoints} | المعاملات: {res.totalCoef}
                   </span>
                 </div>
@@ -83,7 +83,7 @@ export const SavedResultsModal: React.FC<SavedResultsModalProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="text-left">
                     <span className="text-2xl font-black text-emerald-700">{res.average}</span>
-                    <span className="text-xs text-slate-400 mr-1">/ 20</span>
+                    <span className="text-xs text-slate-500 mr-1 font-bold">/ 20</span>
                   </div>
 
                   <div className="flex items-center gap-1 border-r border-slate-200 pr-2">

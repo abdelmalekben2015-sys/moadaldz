@@ -58,7 +58,7 @@ export const GuideListView: React.FC<GuideListViewProps> = ({ navigate }) => {
                 {art.title}
               </h2>
 
-              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+              <p className="text-xs text-slate-600 font-medium leading-relaxed mb-4">
                 {art.metaDescription}
               </p>
             </div>

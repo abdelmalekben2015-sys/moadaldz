@@ -266,7 +266,7 @@ export const UniversityCalculator: React.FC<UniversityCalculatorProps> = ({ onSa
                         max="10"
                         value={rawModule.coef}
                         onChange={(e) => updateModuleField(m.id, 'coef', parseFloat(e.target.value) || 1)}
-                        className="w-12 p-1 text-center font-bold border border-slate-200 rounded-lg bg-white"
+                        className="w-12 p-1 text-center font-bold text-slate-900 border border-slate-300 rounded-lg bg-white"
                       />
                     </td>
                     <td className="p-3">
@@ -276,7 +276,7 @@ export const UniversityCalculator: React.FC<UniversityCalculatorProps> = ({ onSa
                         max="15"
                         value={rawModule.credits}
                         onChange={(e) => updateModuleField(m.id, 'credits', parseFloat(e.target.value) || 1)}
-                        className="w-12 p-1 text-center font-bold border border-slate-200 rounded-lg bg-white text-indigo-700"
+                        className="w-12 p-1 text-center font-black border border-slate-300 rounded-lg bg-white text-indigo-900"
                       />
                     </td>
                     <td className="p-3">
@@ -287,7 +287,7 @@ export const UniversityCalculator: React.FC<UniversityCalculatorProps> = ({ onSa
                         step="0.25"
                         value={rawModule.td ?? ''}
                         onChange={(e) => updateModuleField(m.id, 'td', e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className="w-16 p-1 text-center border border-slate-200 rounded-lg bg-white"
+                        className="w-16 p-1 text-center font-bold text-slate-900 border border-slate-300 rounded-lg bg-white"
                         placeholder="—"
                       />
                     </td>
@@ -299,7 +299,7 @@ export const UniversityCalculator: React.FC<UniversityCalculatorProps> = ({ onSa
                         step="0.25"
                         value={rawModule.exam ?? ''}
                         onChange={(e) => updateModuleField(m.id, 'exam', e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className="w-16 p-1 text-center font-bold border border-slate-300 rounded-lg bg-white"
+                        className="w-16 p-1 text-center font-black text-slate-900 border border-slate-300 rounded-lg bg-white"
                         placeholder="—"
                       />
                     </td>
@@ -311,22 +311,22 @@ export const UniversityCalculator: React.FC<UniversityCalculatorProps> = ({ onSa
                         step="0.25"
                         value={rawModule.rattrapage ?? ''}
                         onChange={(e) => updateModuleField(m.id, 'rattrapage', e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className="w-16 p-1 text-center border border-indigo-200 rounded-lg bg-indigo-50/50 text-indigo-900 font-bold"
+                        className="w-16 p-1 text-center border border-indigo-300 rounded-lg bg-indigo-50/70 text-indigo-950 font-black"
                         placeholder="—"
                       />
                     </td>
                     <td className="p-3 font-bold">
-                      <span className={`px-2 py-0.5 rounded ${m.average >= 10 ? 'text-emerald-700 bg-emerald-50' : 'text-amber-800 bg-amber-50'}`}>
+                      <span className={`px-2 py-0.5 rounded font-black ${m.average >= 10 ? 'text-emerald-950 bg-emerald-100' : 'text-amber-950 bg-amber-100'}`}>
                         {m.average}
                       </span>
                     </td>
                     <td className="p-3">
                       {m.isPassed ? (
-                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] text-emerald-950 font-bold bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
                           مستوفى ({m.credits} رصيد)
                         </span>
                       ) : (
-                        <span className="text-[10px] text-amber-700 font-bold bg-amber-100 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] text-amber-950 font-bold bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
                           غير مستوفى
                         </span>
                       )}

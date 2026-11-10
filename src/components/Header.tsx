@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
                     2026/2027
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium block">احسب معدلك، اعرف فرصتك، واستعد للنجاح</span>
+                <span className="text-[10px] text-slate-500 font-semibold block">احسب معدلك، اعرف فرصتك، واستعد للنجاح</span>
               </div>
             </button>
           </div>
