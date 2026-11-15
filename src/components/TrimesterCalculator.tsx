@@ -437,6 +437,66 @@ export const TrimesterCalculator: React.FC<TrimesterCalculatorProps> = ({ onSave
         </div>
       </div>
 
+      {/* قسم تعليمي شارح لحساب المعدل الفصلي */}
+      <section className="bg-white text-slate-800 rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs mb-24 space-y-5 text-right">
+        <div className="border-b border-slate-100 pb-4 space-y-2">
+          <h2 className="text-lg sm:text-2xl font-black text-slate-900">
+            الدليل الشامل لحساب المعدل الفصلي في الجزائر 2026/2027
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            تعتمد حاسبة المعدل الفصلي في منصة «معدل DZ» على الصيغ الرسمية الصادرة عن وزارة التربية الوطنية الجزائرية لجميع الأطوار التعليمية (الابتدائي، المتوسط، والثانوي بجميع شعبه)، مما يضمن مطابقة تامة لكشوف النقاط الرسمية.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900">
+            1. كيفية حساب معدل المادة الواحدة في المتوسط والثانوي
+          </h3>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <li>
+              <strong>المواد ذات فرض واحد:</strong> يُحسب معدل المادة بجمع علامة التقويم المستمر وعلامة الفرض المحروس مع ضعف علامة الاختبار الفصلي ثم القسمة على 4: <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-900">(التقويم + الفرض + الاختبار × 2) ÷ 4</span>.
+            </li>
+            <li>
+              <strong>المواد ذات فرضين محروسين:</strong> يُستخرج أولاً متوسط الفرضين <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-900">(الفرض 1 + الفرض 2) ÷ 2</span>، ثم يُدرج في المعادلة الأساسية مع التقويم المستمر وضعف الاختبار وتُقسم النتيجة على 4.
+            </li>
+            <li>
+              <strong>المواد بدون تقويم مستمر:</strong> في حال عدم احتساب نقطة تقويم مستمر لمادة معينة، يُعتمد الفرض والاختبار فقط عبر الصيغة <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-900">(الفرض + الاختبار × 2) ÷ 3</span>.
+            </li>
+          </ul>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900">
+            2. حساب المعدل الفصلي العام بالمعاملات والتقديرات الشرفية
+          </h3>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <li>
+              <strong>النقاط الموزونة:</strong> يُضرب معدل كل مادة في معاملها الرسمي الخاص بالمستوى أو الشعبة، وتُجمع كل النقاط الموزونة معاً.
+            </li>
+            <li>
+              <strong>المعدل العام:</strong> يُقسم مجموع النقاط الموزونة على مجموع معاملات المواد المدروسة لاستخراج المعدل الفصلي بدقة رقمين عشريين.
+            </li>
+            <li>
+              <strong>التقديرات والامتيازات المدرسية:</strong> تمنح مجالس الأقسام تقدير «امتياز» للمعدل ≥ 18، و«تهنئة» من 16 إلى 17.99، و«لوحة شرف» من 14 إلى 15.99، و«تشجيع» من 12 إلى 13.99، بينما تُعد عتبة النجاح والانتقال الرسمية 10.00/20 في المتوسط والثانوي (و5.00/10 في الابتدائي).
+            </li>
+          </ul>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900">
+            3. نصائح لاستخدام الحاسبة بفعالية
+          </h3>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <li>
+              يمكنك إضافة أي مادة اختيارية (مثل اللغة الأمازيغية أو لغة ثالثة) عبر زر <strong>«إضافة مادة إضافية»</strong> وتعديل معاملها حسب مستواك.
+            </li>
+            <li>
+              احفظ نتيجتك محلياً في متصفحك بالضغط على <strong>«حفظ النتيجة»</strong> للمقارنة بين الفصول الثلاثة أو طباعة كشف النقاط مباشرة.
+            </li>
+          </ul>
+        </div>
+      </section>
+
     </div>
   );
 };

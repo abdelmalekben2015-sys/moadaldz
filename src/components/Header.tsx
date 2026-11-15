@@ -51,7 +51,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-emerald-200 font-semibold hidden sm:inline">مجاني 100% دون تسجيل</span>
+            <span className="bg-emerald-900/80 text-emerald-200 border border-emerald-700/50 font-semibold px-2.5 py-0.5 rounded-full text-[10px] hidden sm:inline-block">
+              مجاني 100% دون تسجيل
+            </span>
             <button
               onClick={openDiagnosticsModal}
               className="text-emerald-300/80 hover:text-white flex items-center gap-1 text-[10px] font-semibold transition-colors"
@@ -80,7 +82,9 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-black text-slate-900 tracking-tight">معدل DZ</span>
+                  <span className="text-xl font-black text-slate-900 tracking-tight">
+                    معدل <span className="text-emerald-600">DZ</span>
+                  </span>
                   <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold px-2 py-0.5 rounded-full">
                     2026/2027
                   </span>

@@ -50,28 +50,25 @@ export const HomeView: React.FC<HomeViewProps> = ({
     <div className="space-y-6 md:space-y-8">
       
       {/* 1. القسم الرئيسي Hero Section - متطابق تماماً مع الصورة */}
-      <section className="relative text-center pt-8 pb-7 px-5 sm:px-8 rounded-3xl bg-gradient-to-b from-[#065f46] via-[#044e3b] to-[#022c22] text-white shadow-xl overflow-hidden border border-emerald-700/50">
+      <section className="relative text-center pt-8 pb-7 px-5 sm:px-8 rounded-3xl bg-gradient-to-b from-[#065f46] via-[#044e3b] to-[#022c22] text-[#FFFFFF] shadow-xl overflow-hidden border border-emerald-700/50">
         
         {/* شارة أعلى القسم الرئيسي */}
-        <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-400/30 text-emerald-200 text-xs font-bold shadow-xs">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span style={{ color: '#e32a2a' }}>الحاسبة الذكية الأولى لموسم 2026/2027</span>
+        <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-400/30 text-[#FEF08A] text-xs font-bold shadow-xs">
+          <Sparkles className="w-3.5 h-3.5 text-[#FEF08A]" />
+          <span>الحاسبة الذكية الأولى لموسم 2026/2027</span>
         </div>
 
         {/* العنوان الرئيسي */}
         <h1 
-          className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight md:leading-snug mb-3"
-          style={{ color: '#4520da' }}
+          className="text-2xl sm:text-4xl md:text-5xl font-black text-[#FFFFFF] tracking-tight leading-tight md:leading-snug mb-3"
+          style={{ color: '#1a1a22' }}
         >
           احسب معدلك، اعرف فرصتك،<br />
           واستعد للنجاح بكل ثقة
         </h1>
 
         {/* الفقرة الوصفية */}
-        <p 
-          className="text-emerald-100/90 text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto mb-7"
-          style={{ color: '#262121' }}
-        >
+        <p className="text-[#FFFFFF]/95 text-xs sm:text-sm leading-relaxed max-w-2xl mx-auto mb-7">
           معدل DZ هي المنصة الرقمية الأكثر دقة لمساعدة التلاميذ في الأطوار المتوسطة، الثانوية والجامعية على محاكاة معدلات الفصول، حساب علامات الاستدراك (Rattrapage)، وتحديد النقاط الضرورية للنجاح.
         </p>
 
@@ -91,34 +88,31 @@ export const HomeView: React.FC<HomeViewProps> = ({
           {/* 2. المعدل الفصلي */}
           <button
             onClick={() => navigate('/semestre')}
-            className="p-3.5 sm:p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white flex flex-col items-center justify-center text-center backdrop-blur-xs transition-transform hover:scale-102 active:scale-98 cursor-pointer"
-            style={{ color: '#d91e1e' }}
+            className="p-3.5 sm:p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-[#FFFFFF] flex flex-col items-center justify-center text-center backdrop-blur-xs transition-transform hover:scale-102 active:scale-98 cursor-pointer"
           >
-            <Calculator className="w-5 h-5 text-emerald-300 mb-1.5" />
-            <span className="font-bold text-xs sm:text-sm">المعدل الفصلي</span>
-            <span className="text-[10px] sm:text-[11px] font-medium text-emerald-200">متوسط وثانوي</span>
+            <Calculator className="w-5 h-5 text-[#FEF08A] mb-1.5" />
+            <span className="font-bold text-xs sm:text-sm text-[#FFFFFF]">المعدل الفصلي</span>
+            <span className="text-[10px] sm:text-[11px] font-medium text-[#FEF08A]">متوسط وثانوي</span>
           </button>
 
           {/* 3. كم أحتاج للنجاح؟ */}
           <button
             onClick={() => navigate('/target-grade')}
-            className="p-3.5 sm:p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white flex flex-col items-center justify-center text-center backdrop-blur-xs transition-transform hover:scale-102 active:scale-98 cursor-pointer"
-            style={{ color: '#2e54cf' }}
+            className="p-3.5 sm:p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-[#FFFFFF] flex flex-col items-center justify-center text-center backdrop-blur-xs transition-transform hover:scale-102 active:scale-98 cursor-pointer"
           >
-            <TrendingUp className="w-5 h-5 text-amber-300 mb-1.5" />
-            <span className="font-bold text-xs sm:text-sm">كم أحتاج للنجاح؟</span>
-            <span className="text-[10px] sm:text-[11px] font-medium text-emerald-200">حاسبة الأهداف</span>
+            <TrendingUp className="w-5 h-5 text-[#FEF08A] mb-1.5" />
+            <span className="font-bold text-xs sm:text-sm text-[#FFFFFF]">كم أحتاج للنجاح؟</span>
+            <span className="text-[10px] sm:text-[11px] font-medium text-[#FEF08A]">حاسبة الأهداف</span>
           </button>
 
           {/* 4. الحاسبة الجامعية */}
           <button
             onClick={() => navigate('/university')}
-            className="p-3.5 sm:p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white flex flex-col items-center justify-center text-center backdrop-blur-xs transition-transform hover:scale-102 active:scale-98 cursor-pointer"
-            style={{ color: '#2135d2' }}
+            className="p-3.5 sm:p-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-[#FFFFFF] flex flex-col items-center justify-center text-center backdrop-blur-xs transition-transform hover:scale-102 active:scale-98 cursor-pointer"
           >
-            <Award className="w-5 h-5 text-teal-300 mb-1.5" />
-            <span className="font-bold text-xs sm:text-sm">الحاسبة الجامعية</span>
-            <span className="text-[10px] sm:text-[11px] font-medium text-emerald-200">نظام LMD</span>
+            <Award className="w-5 h-5 text-[#FEF08A] mb-1.5" />
+            <span className="font-bold text-xs sm:text-sm text-[#FFFFFF]">الحاسبة الجامعية</span>
+            <span className="text-[10px] sm:text-[11px] font-medium text-[#FEF08A]">نظام LMD</span>
           </button>
 
         </div>
@@ -146,10 +140,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <button
               onClick={() => navigate('/rattrapage')}
               className="w-full md:w-auto px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-sm transition-all hover:scale-102 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
-              style={{ color: '#e61919' }}
             >
-              <span>←</span>
               <span>ابدأ محاكاة الاستدراك الآن</span>
+              <ArrowLeft className="w-4 h-4" />
             </button>
           </div>
         </div>

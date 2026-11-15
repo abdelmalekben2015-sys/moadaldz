@@ -202,7 +202,7 @@ export const RattrapageCalculator: React.FC<RattrapageCalculatorProps> = ({ onSa
             </span>
           </div>
 
-          <h1 className="text-2xl md:text-4xl font-black mb-3 tracking-tight">
+          <h1 className="text-2xl md:text-4xl font-black mb-3 tracking-tight text-white">
             حاسبة معدل الاستدراك في الجزائر 2026/2027
           </h1>
           <p className="text-emerald-100/90 text-xs md:text-sm leading-relaxed mb-6">
@@ -212,7 +212,9 @@ export const RattrapageCalculator: React.FC<RattrapageCalculatorProps> = ({ onSa
 
           {/* محدد المستوى والشعبة */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <label className="text-xs font-bold text-emerald-200 shrink-0">اختر المستوى الدراسي:</label>
+            <label className="text-xs font-bold text-emerald-200 shrink-0">
+              اختر المستوى الدراسي:
+            </label>
             <select
               value={selectedCurriculumId}
               onChange={(e) => setSelectedCurriculumId(e.target.value)}
@@ -273,11 +275,13 @@ export const RattrapageCalculator: React.FC<RattrapageCalculatorProps> = ({ onSa
         </div>
 
         {/* بطاقة قرار النجاح أو النقاط المتبقية */}
-        <div className={`p-5 rounded-2xl border flex flex-col justify-between ${
-          calculationResults.isPassed 
-            ? 'bg-emerald-600 text-white border-emerald-600' 
-            : 'bg-slate-800 text-white border-slate-800'
-        }`}>
+        <div 
+          className={`p-5 rounded-2xl border flex flex-col justify-between ${
+            calculationResults.isPassed 
+              ? 'bg-emerald-600 text-white border-emerald-600' 
+              : 'bg-slate-800 text-white border-slate-800'
+          }`}
+        >
           <div>
             <span className="text-xs opacity-80 block mb-1">الوضعية المتوقعة</span>
             <span className="text-lg font-black block leading-tight">
@@ -512,6 +516,66 @@ export const RattrapageCalculator: React.FC<RattrapageCalculatorProps> = ({ onSa
           })}
         </div>
       </div>
+
+      {/* قسم تعليمي شارح لحساب معدل الاستدراك */}
+      <section className="bg-white text-slate-800 rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs mb-24 space-y-5 text-right">
+        <div className="border-b border-slate-100 pb-4 space-y-2">
+          <h2 className="text-lg sm:text-2xl font-black text-slate-900">
+            دليل قواعد وحساب الامتحان الاستدراكي في الجزائر 2026/2027
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            يُعد الامتحان الاستدراكي فرصة رسمية ثانية تمنحها وزارة التربية الوطنية لتلاميذ التعليم المتوسط والثانوي لتدارك المواد المتعثر فيها وتحقيق معدل الانتقال السنوي (10.00 من 20) دون إعادة السنة.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900">
+            1. شروط الاستفادة من الامتحان الاستدراكي والمواد المعنية
+          </h3>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <li>
+              <strong>المعدل السنوي المؤهل:</strong> يُستدعى تلقائياً التلاميذ الذين تحصلوا على معدل سنوي عام يتراوح بين <strong>9.00 و9.99 من 20</strong> بعد احتساب الفصول الدراسية الثلاثة.
+            </li>
+            <li>
+              <strong>المواد المعنية بالامتحان:</strong> يمتحن التلميذ فقط في المواد التي كان معدلها السنوي أقل من 10.00 من 20، وذلك وفق القائمة التي يضبطها مجلس القسم في نهاية السنة.
+            </li>
+            <li>
+              <strong>عتبة النجاح النهائية:</strong> يُشترط للانتقال إلى المستوى الأعلى بلوغ معدل سنوي عام يساوي أو يفوق <strong>10.00 من 20</strong> بعد دمج نتائج الاستدراك.
+            </li>
+          </ul>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900">
+            2. القاعدة الرسمية لاحتساب علامة الاستدراك (قاعدة الأفضلية)
+          </h3>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <li>
+              <strong>الاحتفاظ بالعلامة الأعلى:</strong> تُطبق القاعدة التربوية <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-900">MAX(العلامة السنوية السابقة، علامة الاستدراك)</span> لصالح التلميذ.
+            </li>
+            <li>
+              <strong>حماية المعدل من الانخفاض:</strong> إذا كانت نقطة التلميذ في امتحان الاستدراك أقل من علامته السنوية الأصلية في مادة ما، تُهمل علامة الاستدراك ويُحتفظ له بعلامته الأصلية كاملة دون أي نقصان.
+            </li>
+            <li>
+              <strong>أثر التحسين الموزون:</strong> كل نقطة إضافية تُحرزها في مادة تُضرب في معاملها، لذلك يظل التركيز على المواد ذات المعامل الكبير (مثل الرياضيات، العربية، العلوم، أو مواد التخصص في الثانوي) أسرع طريق لبلوغ المعدل المطلوب.
+            </li>
+          </ul>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900">
+            3. خطة ذكية للتحضير والنجاح في الاستدراك
+          </h3>
+          <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <li>
+              أدخل علاماتك السنوية الحقيقية من كشف النقاط في الأعلى، ثم لاحظ المواد المصنفة ضمن <strong>«المواد ذات الأولوية الاستراتيجية»</strong> حسب المعامل.
+            </li>
+            <li>
+              جرّب أزرار السيناريوهات السريعة مثل <strong>«سيناريو: 10/20 للجميع»</strong> لتعرف فوراً عدد النقاط الموزونة المتبقية لك والحد الأدنى المطلوب للانتقال.
+            </li>
+          </ul>
+        </div>
+      </section>
 
     </div>
   );
